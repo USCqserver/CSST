@@ -122,34 +122,33 @@ Run `ALPHA_GEN.py` to create additional data files in the `runs` directory.  Eac
 `ALPHA_GEN.py` takes the following arguments
 
 ```
-usage: ALPHA_GEN.py [-h] [--dir DIR] [--nx NX] [--ny NY] [--ham {tfim,heis,random}] [--istate ISTATE]
-                    [--nw NW] [--mmin MMIN] [--mmax MMAX] [--mnum MNUM] [--amin AMIN] [--amax AMAX]
-                    [--anum ANUM] [--snr SNR] [--rescale {0,1}] [--axis {0,1}] [--inverse {0,1}]
-                    [--fitint {0,1}] [--replace {0,1}]
+usage: ALPHA_GEN.py [-h] [--dir DIR] [--nx NX] [--ny NY] [--ham {tfim,heis}] [--istate ISTATE] [--nw NW]
+                    [--mmin MMIN] [--mmax MMAX] [--mnum MNUM] [--amin AMIN] [--amax AMAX] [--anum ANUM]
+                    [--snr SNR] [--rescale {0,1}] [--axis {0,1}] [--inverse {0,1}] [--fitint {0,1}]
+                    [--replace {0,1}]
 
 Command line arguments for CSST
 
 options:
-  -h, --help            show this help message and exit
-  --dir DIR             directory to save data files
-  --nx NX               Number of sites in x direction
-  --ny NY               Number of sites in y direction
-  --ham {tfim,heis,random}
-                        Hamiltonian type
-  --istate ISTATE       Initial state
-  --nw NW               Number of workers for multiprocessing
-  --mmin MMIN           Min m
-  --mmax MMAX           Max m
-  --mnum MNUM           Number of ms (logspaced)
-  --amin AMIN           Min alpha power (10^amin)
-  --amax AMAX           Max alpha power (10^amax)
-  --anum ANUM           Number of alphas (logspaced)
-  --snr SNR             Filter out (O_i, N_ST) with SNR < value
-  --rescale {0,1}       Rescale by sqrt(N/m) in CS reconstruction
-  --axis {0,1}          Axis to apply DCT/IDCT to
-  --inverse {0,1}       Use IDCT instead of DCT for basis
-  --fitint {0,1}        Fit intercept in Lasso regression
-  --replace {0,1}       Sample with replacement in time-subsampling
+  -h, --help         show this help message and exit
+  --dir DIR          directory to save data files
+  --nx NX            Number of sites in x direction
+  --ny NY            Number of sites in y direction
+  --ham {tfim,heis}  Hamiltonian type
+  --istate ISTATE    Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])
+  --nw NW            Number of workers for multiprocessing
+  --mmin MMIN        Min m
+  --mmax MMAX        Max m
+  --mnum MNUM        Number of ms (logspaced)
+  --amin AMIN        Min alpha power (10^amin)
+  --amax AMAX        Max alpha power (10^amax)
+  --anum ANUM        Number of alphas (logspaced)
+  --snr SNR          Filter out (O_i, N_ST) with SNR < value
+  --rescale {0,1}    Rescale by sqrt(N/m) in CS reconstruction
+  --axis {0,1}       Axis to apply DCT/IDCT to
+  --inverse {0,1}    Use IDCT instead of DCT for basis
+  --fitint {0,1}     Fit intercept in Lasso regression
+  --replace {0,1}    Sample with replacement in time-subsampling
 ```
 
 The `snr` flag specifies a cutoff signal-to-noise ratio (default is $-1$) which can filter out a large number of iterations so that time isn't wasted reconstructing very noisy signals.  Thus, while `cs_xxxx.npy` can be a large file (GBs) it may contain majority unfilled entries/NaNs depending on the selected cutoff threshold.  This file is read as a `np.memmap` in the plotting code due to its size.
