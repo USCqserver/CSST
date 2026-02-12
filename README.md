@@ -1,4 +1,4 @@
-# CSST
+# Compressed sensing shadow tomography
 Code and data for CSST paper
 
 ## Contents
