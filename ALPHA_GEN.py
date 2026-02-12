@@ -114,8 +114,8 @@ def get_parser():
     parser.add_argument("--dir",    type=str,     default="data",       help="directory to save data files")
     parser.add_argument("--nx",     type=int,     default=2,            help="Number of sites in x direction")
     parser.add_argument("--ny",     type=int,     default=2,            help="Number of sites in y direction")
-    parser.add_argument("--ham",    type=str,     default='heis',       help="Hamiltonian type",        choices=['tfim','heis','random'])
-    parser.add_argument("--istate", type=str,     default='+-+-',       help="Initial state")
+    parser.add_argument("--ham",    type=str,     default='heis',       help="Hamiltonian type",        choices=['tfim','heis'])
+    parser.add_argument("--istate", type=str,     default='+-+-',       help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
     parser.add_argument("--nw",     type=int,     default=1,            help="Number of workers for multiprocessing")
     #new args
     parser.add_argument("--mmin",   type=int,     default=10,           help="Min m")

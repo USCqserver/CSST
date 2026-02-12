@@ -115,8 +115,8 @@ Run `ALPHA_GEN.py` to create additional data files in the `runs` directory.  Eac
 
 | File | Shape | Description |
 |----------|----------|----------|
-| `/runs/cs_xxxx.npy`      | `(NUM_PAULIS,NSNUM,MNUM,ALPHA_NUM,8)` | CSST error data |
-| `/runs/params_xxxx.npy`  |  | Parameters file for alpha sweeps
+| `cs_xxxx.npy`      | `(NUM_PAULIS,NSNUM,MNUM,ALPHA_NUM,8)` | CSST error data |
+| `params_xxxx.npy`  |  | Parameters file for alpha sweeps
 
 
 `ALPHA_GEN.py` takes the following arguments
