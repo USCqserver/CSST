@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --account=lidar_492
+#SBATCH --account=YOUR_ACCOUNT
 #SBATCH --mail-type=all
-#SBATCH --mail-user=jb_772@usc.edu
+#SBATCH --mail-user=YOUR_EMAIL
 #SBATCH --partition=main
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
