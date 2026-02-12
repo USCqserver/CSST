@@ -128,7 +128,7 @@ def get_parser():
     parser.add_argument("--rescale",type=int,     default=0,            help="Rescale by sqrt(N/m) in CS reconstruction", choices=[0,1])
     parser.add_argument("--axis",   type=int,     default=1,            help="Axis to apply DCT/IDCT to", choices=[0,1])
     parser.add_argument("--inverse",type=int,     default=0,            help="Use IDCT instead of DCT for basis", choices=[0,1])
-    parser.add_argument("--fitint", type=int,     default=0,            help="Fit intercept in Lasso regression", choices=[0,1])
+    parser.add_argument("--fitint", type=int,     default=1,            help="Fit intercept in Lasso regression", choices=[0,1])
     parser.add_argument("--replace",type=int,     default=0,            help="Sample with replacement in time-subsampling", choices=[0,1])
     return parser
 
@@ -246,11 +246,14 @@ if __name__ == "__main__":
     else:
         print(f"{YELLOW}Not filtering low SNR observables{RESET}")
 
-    def slurm_cpus():
-        v = os.environ.get("SLURM_CPUS_PER_TASK") or os.environ.get("SLURM_CPUS_ON_NODE")
-        return max(1, int(v)) if v else (os.cpu_count() or 1)
+    def cpu_cap():
+        v = os.environ.get("SLURM_CPUS_PER_TASK")
+        if v:
+            return int(v)
+        return os.cpu_count() or 1
+
+    NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
     
-    NUM_WORKERS = 6 if (sys.platform == "darwin") else min(slurm_cpus(), NUM_WORKERS)
     print(f"{CYAN}Using multiprocessing with {NUM_WORKERS} workers...{RESET}")
 
     with mp.Pool(processes=NUM_WORKERS,

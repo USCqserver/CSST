@@ -225,27 +225,8 @@ def get_init_state(
     nq: int,
     spec: Union[str, qt.Qobj],
     *,
-    eigvals: int = 1,
     seed: int = 42,
 ) -> qt.Qobj:
-    """
-    Build an N-qubit initial ket by type/shape of `spec`.
-
-    spec: str
-        - Named states: 'ghz', 'w' (NotImplemented), 'random', 'random_product'
-        - Otherwise, treated as a compact per-qubit string of length nq using:
-            '0' -> |0>, '1' -> |1>, '+' -> (|0>+|1>)/√2, '-' -> (|0>-|1>)/√2,
-            '>' -> (|0>+i|1>)/√2, '<' -> (|0>-i|1>)/√2
-          Whitespace is ignored.
-
-    spec: qutip.Qobj
-        Interpreted as a Hamiltonian H. Returns the normalized sum of the first
-        `eigvals` eigenkets of H (from H.eigenstates()).
-
-    Returns
-    -------
-    qutip.Qobj : ket with dims [[2]*nq, [1]*nq].
-    """
     
     char_lookup = {
         '0': k0,
@@ -297,15 +278,15 @@ def get_init_state(
                 )
             return qt.tensor(kets)
 
-    if isinstance(spec, qt.Qobj):
-        H = spec
-        evals, evecs = H.eigenstates()
-        if eigvals < 1 or eigvals > len(evecs):
-            raise ValueError(f"eigvals must be in [1, {len(evecs)}], got {eigvals}.")
-        state = evecs[0] if eigvals == 1 else sum(evecs[:eigvals])
-        state = state.unit()
-        state.dims = [[2]*nq, [1]*nq]
-        return state
+    # if isinstance(spec, qt.Qobj):
+    #     H = spec
+    #     evals, evecs = H.eigenstates()
+    #     if eigvals < 1 or eigvals > len(evecs):
+    #         raise ValueError(f"eigvals must be in [1, {len(evecs)}], got {eigvals}.")
+    #     state = evecs[0] if eigvals == 1 else sum(evecs[:eigvals])
+    #     state = state.unit()
+    #     state.dims = [[2]*nq, [1]*nq]
+    #     return state
 
     raise TypeError(
         "Unsupported `spec` type. Use: str (named state or compact product string) "

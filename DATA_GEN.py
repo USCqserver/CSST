@@ -15,9 +15,6 @@ from utils.cs_utils import *
 from utils.pauli_utils import *
 from utils.shadow_utils import *
 
-import faulthandler, signal
-faulthandler.register(signal.SIGUSR1, all_threads=True)
-
 # ====== color preamble ======
 RESET   = "\033[0m"
 RED     = "\033[91m"
@@ -135,8 +132,8 @@ def get_parser():
     parser.add_argument("--nx",     type=int,     default=2,            help="Number of sites in x direction")
     parser.add_argument("--ny",     type=int,     default=2,            help="Number of sites in y direction")
     parser.add_argument("--nb",     type=int,     default=4,            help="Max Pauli observable weight")
-    parser.add_argument("--ham",    type=str,     default='heis',       help="Hamiltonian type",        choices=['tfim','heis','random'])
-    parser.add_argument("--istate", type=str,     default='+-+-',       help="Initial state")
+    parser.add_argument("--ham",    type=str,     default='heis',       help="Hamiltonian type",        choices=['tfim','heis'])
+    parser.add_argument("--istate", type=str,     default='+-+-',       help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
     parser.add_argument("--n",      type=int,     default=500,          help="Number of time steps")
     parser.add_argument("--nsmin",  type=int,     default=10,           help="Min number of shadows")
     parser.add_argument("--nsmax",  type=int,     default=1000,         help="Max number of shadows")
@@ -145,7 +142,6 @@ def get_parser():
     return parser
 
 if __name__ == "__main__":
-    print(f"MAIN PID: {os.getpid()}", flush=True)
 
     parser = get_parser()
     args = parser.parse_args()
@@ -208,10 +204,7 @@ if __name__ == "__main__":
     MAXT = dt * N
     times = np.linspace(0,MAXT,N)
 
-    if ISTATE == 'h':
-        init_state = get_init_state(NQ, H, eigvals=4)
-    else:
-        init_state = get_init_state(NQ, ISTATE)
+    init_state = get_init_state(NQ, ISTATE)
 
     ostrings = pbw(NQ, nb=NB, max=True)
     # ostrings.remove("I"*NQ)
@@ -257,11 +250,14 @@ if __name__ == "__main__":
     ests = create_memmap(est_path, shape=(N, NUM_PAULIS, NSNUM), dtype=np.float32, fill=np.nan)
     print(f"{'Size of ests:':<20} {ests.nbytes / (1024**2):8.2f} MB")
 
-    def slurm_cpus():
-        v = os.environ.get("SLURM_CPUS_PER_TASK") or os.environ.get("SLURM_CPUS_ON_NODE")
-        return max(1, int(v)) if v else (os.cpu_count() or 1)
-    
-    NUM_WORKERS = 6 if (sys.platform == "darwin") else min(slurm_cpus(), NUM_WORKERS)
+    def cpu_cap():
+        v = os.environ.get("SLURM_CPUS_PER_TASK")
+        if v:
+            return int(v)
+        return os.cpu_count() or 1
+
+    NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
+
     print(f"{CYAN}Using multiprocessing with {NUM_WORKERS} workers...{RESET}")
     print("\n")
 
