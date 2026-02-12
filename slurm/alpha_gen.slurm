@@ -1,14 +1,18 @@
 #!/bin/bash
-#SBATCH --account=YOUR_ACCOUNT
+#
+# USER: Replace the placeholders below (YOUR_...) with values for your cluster/user.
+#
+
+#SBATCH --account=YOUR_ACCOUNT_OR_ALLOCATION        # USER: your Slurm account/allocation (or delete this line if not needed)
 #SBATCH --mail-type=all
-#SBATCH --mail-user=YOUR_EMAIL
-#SBATCH --partition=main
+#SBATCH --mail-user=YOUR_EMAIL@EXAMPLE.COM          # USER: your email for Slurm notifications (or delete mail lines if undesired)
+#SBATCH --partition=main                            # USER: change if your cluster uses a different partition name
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=64G
 #SBATCH --time=12:00:00
-#SBATCH --job-name=alpha_dst
+#SBATCH --job-name=alpha_gen
 
 set -euo pipefail
 
@@ -32,8 +36,8 @@ FITINT=1
 REPLACE=0
 
 # -------- Work dir on SCRATCH (so ./data lands here) --------
-SCRATCH="/scratch1/jb_772"
-WORKDIR="$SCRATCH/dst"
+SCRATCH="YOUR_SCRATCH_PATH"                         # USER: e.g. "/scratch1/$USER" or "$SCRATCH" if your site defines it
+WORKDIR="$SCRATCH/CSST"                              # USER: choose where outputs should land
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
@@ -44,11 +48,11 @@ export NUMEXPR_NUM_THREADS=1
 
 # -------- Miniconda: init + activate shadows --------
 # (Batch shells don't read your ~/.bashrc)
-source "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate shadows
+source "YOUR_CONDA_SH_PATH"                         # USER: e.g. "$HOME/miniconda3/etc/profile.d/conda.sh"
+conda activate YOUR_CONDA_ENV_NAME                  # USER: e.g. "shadows" (must exist in your conda install)
 
 # -------- Run your script from HOME; I/O happens in $WORKDIR --------
-python "$HOME/dynamical_shadow_tomography/ALPHA_GEN.py" \
+python "YOUR_PATH_TO_REPO/ALPHA_GEN.py" \            # USER: e.g. "$HOME/CSST/ALPHA_GEN.py"
     --nx	"$NX"		\
     --ny	"$NY"		\
     --ham 	"$HAM" 		\
@@ -66,4 +70,3 @@ python "$HOME/dynamical_shadow_tomography/ALPHA_GEN.py" \
     --inverse	"$INVERSE"	\
     --fitint	"$FITINT"	\
     --replace	"$REPLACE"
-
