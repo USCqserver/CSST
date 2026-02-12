@@ -254,7 +254,9 @@ if __name__ == "__main__":
         v = os.environ.get("SLURM_CPUS_PER_TASK")
         if v:
             return int(v)
-        return os.cpu_count() or 1
+    
+        n = os.cpu_count() or 1
+        return max(1, n-1)
 
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
 
