@@ -3,5 +3,13 @@
 *.pkl
 *.json
 *.DS_Store
-__pycache__/
 *.pyc
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.tar.gz
+
+__pycache__/
+data/
+plots/
