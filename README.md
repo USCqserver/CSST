@@ -1,5 +1,14 @@
 # Compressed sensing shadow tomography
-Code and data for CSST paper
+Joseph Barreto and Daniel Lidar
+
+## Description
+
+This repository contains all scripts necessary to generate and plot the data associated with the arXiv submission.
+
+The latest release of this code is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18625394.svg)](https://doi.org/10.5281/zenodo.18625394)
+
+The data associated with the arXiv submission is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18626487.svg)](https://doi.org/10.5281/zenodo.18626487)
+
 
 ## Contents
 ```
