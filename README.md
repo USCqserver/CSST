@@ -3,11 +3,14 @@ Joseph Barreto and Daniel Lidar
 
 ## Description
 
-This repository contains all scripts necessary to generate and plot the data associated with the arXiv submission.
+This repository contains all scripts necessary to generate and plot the data associated with [![arXiv](https://img.shields.io/badge/arXiv-2602.12518-b31b1b.svg)](https://arxiv.org/abs/2602.12518)
+
 
 The latest release of this code is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18625394.svg)](https://doi.org/10.5281/zenodo.18625394)
 
 The data associated with the arXiv submission is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18626487.svg)](https://doi.org/10.5281/zenodo.18626487)
+
+
 
 
 ## Contents
@@ -178,3 +181,36 @@ The slurm files `dst.slurm` and `alpha.slurm` run `DATA_GEN.py` and `ALPHA_GEN.p
 This material is based upon work supported by, or in part by, the U. S. Army Research Laboratory and the U. S. Army Research Office under contract/grant number W911NF2310255.
 
 ## Citation
+
+```bibtex
+@misc{barreto2026compressedsensingshadowtomography,
+      title={Compressed Sensing Shadow Tomography}, 
+      author={Joseph Barreto and Daniel Lidar},
+      year={2026},
+      eprint={2602.12518},
+      archivePrefix={arXiv},
+      primaryClass={quant-ph},
+      url={https://arxiv.org/abs/2602.12518}, 
+}
+
+@software{joeybarreto_2026_18626487,
+  author       = {joeybarreto},
+  title        = {USCqserver/CSST: v1.0.2},
+  month        = feb,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v1.0.2},
+  doi          = {10.5281/zenodo.18626487},
+  url          = {https://doi.org/10.5281/zenodo.18626487},
+}
+
+@dataset{barreto_2026_18625394,
+  author       = {Barreto, Joseph},
+  title        = {Data repository for CSST},
+  month        = feb,
+  year         = 2026,
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.18625394},
+  url          = {https://doi.org/10.5281/zenodo.18625394},
+}
+```
