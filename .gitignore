@@ -9,6 +9,7 @@
 *.jpeg
 *.pdf
 *.tar.gz
+*.bib
 
 __pycache__/
 data/
