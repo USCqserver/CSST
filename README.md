@@ -6,11 +6,9 @@ Joseph Barreto and Daniel Lidar
 This repository contains all scripts necessary to generate and plot the data associated with [![arXiv](https://img.shields.io/badge/arXiv-2602.12518-b31b1b.svg)](https://arxiv.org/abs/2602.12518)
 
 
-The latest release of this code is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18625394.svg)](https://doi.org/10.5281/zenodo.18625394)
+The latest release of this code is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18626487.svg)](https://doi.org/10.5281/zenodo.18626487)
 
-The data associated with the arXiv submission is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18626487.svg)](https://doi.org/10.5281/zenodo.18626487)
-
-
+The data associated with the arXiv submission is archived at [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18625394.svg)](https://doi.org/10.5281/zenodo.18625394)
 
 
 ## Contents
