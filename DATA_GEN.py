@@ -139,11 +139,11 @@ def get_parser():
     parser.add_argument("--nsmax",  type=int,     default=1000,         help="Max number of shadows")
     parser.add_argument("--nsnum",  type=int,     default=10,           help="Number of shadows to try (logspaced)")
     parser.add_argument("--nw",     type=int,     default=1,            help="Number of workers for multiprocessing")
-    parser.add_argument("--eps",    type=int,     default=0,            help="Std dev for perturbation of Ham coeffs")
+    parser.add_argument("--eps",    type=float,     default=0,            help="Std dev for perturbation of Ham coeffs")
     return parser
 
 if __name__ == "__main__":
-
+    
     parser = get_parser()
     args = parser.parse_args()
     pprint.pprint(args)
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"
     else:
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
-        
+
     DIR = Path(args.dir) / LABEL
     print(f"Creating directory {DIR}")
     DIR.mkdir(parents=True, exist_ok=True)

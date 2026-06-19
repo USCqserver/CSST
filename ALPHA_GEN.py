@@ -117,7 +117,7 @@ def get_parser():
     parser.add_argument("--ham",    type=str,     default='heis',       help="Hamiltonian type",        choices=['tfim','heis'])
     parser.add_argument("--istate", type=str,     default='+-+-',       help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
     parser.add_argument("--nw",     type=int,     default=1,            help="Number of workers for multiprocessing")
-    parser.add_argument("--eps",    type=float,   default=0,           help="Std dev for perturbation of Ham coeffs")
+    parser.add_argument("--eps",    type=float,   default=0,            help="Std dev for perturbation of Ham coeffs")
 
     #new args
     parser.add_argument("--mmin",   type=int,     default=10,           help="Min m")
@@ -165,7 +165,7 @@ if __name__ == "__main__":
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"
     else:
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
-        
+
     DIR = Path(args.dir) / LABEL
     DIR.mkdir(parents=True, exist_ok=True)
 
