@@ -139,6 +139,7 @@ def get_parser():
     parser.add_argument("--nsmax",  type=int,     default=1000,         help="Max number of shadows")
     parser.add_argument("--nsnum",  type=int,     default=10,           help="Number of shadows to try (logspaced)")
     parser.add_argument("--nw",     type=int,     default=1,            help="Number of workers for multiprocessing")
+    parser.add_argument("--eps",    type=int,     default=0,            help="Std dev for perturbation of Ham coeffs")
     return parser
 
 if __name__ == "__main__":
@@ -157,9 +158,15 @@ if __name__ == "__main__":
     NSMAX = args.nsmax         # max number of shadows
     NSNUM = args.nsnum         # number of shadow subsamples
     ISTATE = args.istate       # initial state
+    EPS = args.eps             # std dev for perturbation of Ham coeffs
     NUM_WORKERS = args.nw      # number of workers
 
-    LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
+    if EPS:
+        print(f"{YELLOW}Perturbing Hamiltonian coefficients with std dev {EPS}...{RESET}")
+        LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"
+    else:
+        LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
+        
     DIR = Path(args.dir) / LABEL
     print(f"Creating directory {DIR}")
     DIR.mkdir(parents=True, exist_ok=True)
@@ -181,7 +188,7 @@ if __name__ == "__main__":
     ########## MODEL ##########
     G = networkx.generators.lattice.grid_2d_graph(NX,NY)
     G = networkx.convert_node_labels_to_integers(G)
-    H_ops = get_h_ops(NQ, model=HAM, graph=G, seed=42)
+    H_ops = get_h_ops(NQ, model=HAM, graph=G, seed=42, eps=EPS)
 
     c_ops = []
     ad_gammas = [1e-1]*NQ
@@ -276,7 +283,9 @@ if __name__ == "__main__":
             'tmax':   times[-1],
             'n':      N,
             'dt':     dt,
-            'nw':     NUM_WORKERS,}
+            'nw':     NUM_WORKERS,
+            'eps':    EPS,
+            }
     
     to_builtin = lambda x: x.item() if hasattr(x, "item") else x
     info = {k: to_builtin(v) for k, v in info.items()}
