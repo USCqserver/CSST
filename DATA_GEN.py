@@ -195,7 +195,7 @@ if __name__ == "__main__":
     ad_ops = amp_damp_ops(NQ)
     c_ops += [gamma * op for (gamma,op) in zip(ad_gammas, ad_ops)]
 
-    dz_gammas = ([1e-1]*NQ) * (1 + EPS * np.random.default_rng(42).normal(size=NQ))  # dephasing rates
+    dz_gammas = ([1e-1]*NQ) * (1 + EPS * np.random.default_rng(43).normal(size=NQ))  # dephasing rates
     dz_ops = [p2op(z) for z in pbw(NQ,nb=1,ptype='Z')]
     c_ops += [gamma * op for (gamma,op) in zip(dz_gammas, dz_ops)]
 

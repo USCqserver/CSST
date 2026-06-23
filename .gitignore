@@ -10,6 +10,8 @@
 *.pdf
 *.tar.gz
 *.bib
+*pencil*
+*spectral*
 
 __pycache__/
 data/
