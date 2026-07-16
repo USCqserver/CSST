@@ -82,7 +82,8 @@ def ps2op(ops,norm=False):
 
 def perturb(ops, eps=0, seed=42):
     rng = np.random.default_rng(seed)
-    return [(c * (1 + eps * rng.standard_normal()), p) for (c,p) in ops]
+    # return [(c * (1 + eps * rng.standard_normal()), p) for (c,p) in ops]
+    return [(c * (1 + eps * rng.uniform(low=-1, high=1)), p) for (c,p) in ops]
 
 def pbw(nq,nb=-1,ptype=None,max=False,k=None,edges=None):
     """
@@ -156,7 +157,7 @@ def amp_damp_ops(nq):
 # ==================== MODEL UTILITIES =================== #
 # ============================================================= #
 
-def heisenberg_model_ops(nq, edges, jx=1, jy=1, jz=1, eps=0):
+def heisenberg_model_ops(nq, edges, jx=1, jy=1, jz=1):
    ops = []
    for (ii,jj) in edges:
         for jval,p in zip([jx, jy, jz], ['X', 'Y', 'Z']):
@@ -218,7 +219,7 @@ def get_h_ops(nq,model,graph=None,seed=None,eps=0,k=None):
     else:
         raise ValueError(f"Unknown model '{model}'")
 
-    H_ops = perturb(H_ops, eps=eps)
+    H_ops = perturb(H_ops, eps=eps, seed=seed)
     return H_ops
 
 def get_init_state(

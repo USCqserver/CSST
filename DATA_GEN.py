@@ -139,7 +139,8 @@ def get_parser():
     parser.add_argument("--nsmax",  type=int,     default=1000,         help="Max number of shadows")
     parser.add_argument("--nsnum",  type=int,     default=10,           help="Number of shadows to try (logspaced)")
     parser.add_argument("--nw",     type=int,     default=1,            help="Number of workers for multiprocessing")
-    parser.add_argument("--eps",    type=float,     default=0,            help="Std dev for perturbation of Ham coeffs")
+    parser.add_argument("--eps",    type=float,   default=0,            help="Max percentage of perturbation to Ham coeffs and Lindblad rates")
+    parser.add_argument("--gamma",  type=float,   default=1e-2,         help="Common decay rate for all collapse operators")
     return parser
 
 if __name__ == "__main__":
@@ -158,11 +159,12 @@ if __name__ == "__main__":
     NSMAX = args.nsmax         # max number of shadows
     NSNUM = args.nsnum         # number of shadow subsamples
     ISTATE = args.istate       # initial state
-    EPS = args.eps             # std dev for perturbation of Ham coeffs
+    EPS = args.eps             # max percentage of perturbation to Ham coeffs and Lindblad rates
+    GAMMA = args.gamma         # common decay rate for all collapse operators
     NUM_WORKERS = args.nw      # number of workers
 
     if EPS:
-        print(f"{YELLOW}Perturbing Hamiltonian coefficients with std dev {EPS}...{RESET}")
+        print(f"{YELLOW}Perturbing Hamiltonian coefficients with max percentage {EPS}...{RESET}")
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"
     else:
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
@@ -191,11 +193,12 @@ if __name__ == "__main__":
     H_ops = get_h_ops(NQ, model=HAM, graph=G, seed=42, eps=EPS)
 
     c_ops = []
-    ad_gammas = ([1e-1]*NQ) * (1 + EPS * np.random.default_rng(42).normal(size=NQ))  # amplitude damping rates
+    rng = np.random.default_rng(43)
+    ad_gammas = ([np.sqrt(GAMMA)]*NQ) * (1 + EPS * rng.uniform(low=-1, high=1, size=NQ))  # amplitude damping rates
     ad_ops = amp_damp_ops(NQ)
     c_ops += [gamma * op for (gamma,op) in zip(ad_gammas, ad_ops)]
 
-    dz_gammas = ([1e-1]*NQ) * (1 + EPS * np.random.default_rng(43).normal(size=NQ))  # dephasing rates
+    dz_gammas = ([np.sqrt(GAMMA)]*NQ) * (1 + EPS * rng.uniform(low=-1, high=1, size=NQ))  # dephasing rates
     dz_ops = [p2op(z) for z in pbw(NQ,nb=1,ptype='Z')]
     c_ops += [gamma * op for (gamma,op) in zip(dz_gammas, dz_ops)]
 
