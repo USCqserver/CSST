@@ -1,43 +1,43 @@
 #!/bin/bash
-#
-# USER: Replace the placeholders below (YOUR_...) with values for your cluster/user.
-#
-
-#SBATCH --account=YOUR_ACCOUNT_OR_ALLOCATION        # USER: your Slurm account/allocation (or delete this line if not needed)
 #SBATCH --mail-type=all
-#SBATCH --mail-user=YOUR_EMAIL@EXAMPLE.COM          # USER: your email for Slurm notifications (or delete mail lines if undesired)
-#SBATCH --partition=main                            # USER: change if your cluster uses a different partition name
+#SBATCH --partition=main
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=64G
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --job-name=alpha_gen
+#
+# --account and --mail-user are supplied at submit time by ./submit.sh,
+# which reads them from config.sh (see config.sh.example).
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
+
 # -------- Parameters ---------
 NX=2
-NY=3
-HAM="heis"
-ISTATE="+-+-+-"
+NY=4
+HAM="tfim"
+ISTATE="ghz"
+EPS=0.1
 MMIN=50
 MMAX=1000
 MNUM=30
 AMIN=-7
-AMAX=0
-ANUM=50
+AMAX=-2
+ANUM=40
 NW=64
 SNR=-1
-RESCALE=1
+RESCALE=0
 AXIS=1
 INVERSE=0
 FITINT=1
 REPLACE=0
 
 # -------- Work dir on SCRATCH (so ./data lands here) --------
-SCRATCH="YOUR_SCRATCH_PATH"                         # USER: e.g. "/scratch1/$USER" or "$SCRATCH" if your site defines it
-WORKDIR="$SCRATCH/CSST"                              # USER: choose where outputs should land
+WORKDIR="$SCRATCH_ROOT/dst"
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
@@ -46,17 +46,18 @@ export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-# -------- Miniconda: init + activate shadows --------
+# -------- Miniconda: init + activate env --------
 # (Batch shells don't read your ~/.bashrc)
-source "YOUR_CONDA_SH_PATH"                         # USER: e.g. "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate YOUR_CONDA_ENV_NAME                  # USER: e.g. "shadows" (must exist in your conda install)
+source "$CONDA_SH"
+conda activate "$CONDA_ENV"
 
-# -------- Run your script from HOME; I/O happens in $WORKDIR --------
-python "YOUR_PATH_TO_REPO/ALPHA_GEN.py" \            # USER: e.g. "$HOME/CSST/ALPHA_GEN.py"
+# -------- Run script from repo; I/O happens in $WORKDIR --------
+python "$REPO_PATH/ALPHA_GEN.py" \
     --nx	"$NX"		\
     --ny	"$NY"		\
     --ham 	"$HAM" 		\
     --istate 	"$ISTATE" 	\
+    --eps	"$EPS"		\
     --mmin	"$MMIN"		\
     --mmax	"$MMAX"		\
     --mnum	"$MNUM"		\

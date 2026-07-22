@@ -1,37 +1,37 @@
 #!/bin/bash
-#
-# USER: Replace the YOUR_* placeholders below with values appropriate for your cluster/user.
-#
-
-#SBATCH --account=YOUR_ACCOUNT_OR_ALLOCATION        # USER: your Slurm account (or delete if not required)
 #SBATCH --mail-type=all
-#SBATCH --mail-user=YOUR_EMAIL@EXAMPLE.COM          # USER: your email (or remove mail lines if undesired)
-#SBATCH --partition=debug                           # USER: change partition if needed
+#SBATCH --partition=main
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=64G
-#SBATCH --time=1:00:00
+#SBATCH --mem=128G
+#SBATCH --time=4:00:00
 #SBATCH --job-name=data_gen
+#
+# --account and --mail-user are supplied at submit time by ./submit.sh,
+# which reads them from config.sh (see config.sh.example).
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
+
 # -------- Parameters --------
-DIR="debug"
+DIR="data"
 NX=2
-NY=3
+NY=4
 HAM="heis"
-ISTATE="+-+-+-"
+ISTATE="+-+-+-+-"
 N=1000
 NB=4
 NSMIN=50
 NSMAX=50000
 NSNUM=30
-NW=$SLURM_CPUS_PER_TASK   # uses whatever you set in --cpus-per-task
+NW=$SLURM_CPUS_PER_TASK
+EPS=0.1
 
 # -------- Work dir on SCRATCH (so ./data lands here) --------
-SCRATCH="YOUR_SCRATCH_PATH"                         # USER: e.g. "/scratch1/$USER" or "$SCRATCH"
-WORKDIR="$SCRATCH/CSST"                              # USER: choose project subdirectory
+WORKDIR="$SCRATCH_ROOT/dst"
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
@@ -40,13 +40,13 @@ export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-# -------- Miniconda: init + activate environment --------
+# -------- Miniconda: init + activate env --------
 # (Batch shells don't read your ~/.bashrc)
-source "YOUR_CONDA_SH_PATH"                         # USER: e.g. "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate YOUR_CONDA_ENV_NAME                  # USER: e.g. "shadows"
+source "$CONDA_SH"
+conda activate "$CONDA_ENV"
 
-# -------- Run your script from HOME; I/O happens in $WORKDIR --------
-python "YOUR_PATH_TO_REPO/DATA_GEN.py" \            # USER: e.g. "$HOME/CSST/DATA_GEN.py"
+# -------- Run script from repo; I/O happens in $WORKDIR --------
+python "$REPO_PATH/DATA_GEN.py" \
     --dir	"$DIR"		\
     --nx 	"$NX"		\
     --ny 	"$NY"		\
@@ -57,4 +57,5 @@ python "YOUR_PATH_TO_REPO/DATA_GEN.py" \            # USER: e.g. "$HOME/CSST/DAT
     --nsmax 	"$NSMAX"	\
     --nsnum 	"$NSNUM" 	\
     --istate 	"$ISTATE" 	\
-    --nw 	"$NW"
+    --nw 	"$NW"		\
+    --eps	"$EPS"
