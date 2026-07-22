@@ -8,13 +8,13 @@
 #SBATCH --time=4:00:00
 #SBATCH --job-name=data_gen
 #
-# --account and --mail-user are supplied at submit time by ./submit.sh,
-# which reads them from config.sh (see config.sh.example).
+# --account and --mail-user come from SBATCH_ACCOUNT / SBATCH_MAIL_USER
+# env vars, exported from ~/.bashrc at submit time (see config.sh.example).
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/config.sh"
+SLURM_DIR="$HOME/CSST/slurm"   # USER: change if your repo lives elsewhere
+source "$SLURM_DIR/config.sh"
 
 # -------- Parameters --------
 DIR="data"
