@@ -186,6 +186,7 @@ if __name__ == "__main__":
     assert info['ny'] == NY
     assert info['ham'] == HAM
     assert info['istate'] == ISTATE
+    assert info['eps'] == EPS
 
     NB = info['nb']
     ostrings = pbw(NQ, nb=NB, max=True)

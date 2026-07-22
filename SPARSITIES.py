@@ -2,10 +2,9 @@
 # coding: utf-8
 
 from tqdm import tqdm
-import random, os, argparse, pprint
+import random, os, argparse, pprint, json
 import multiprocessing as mp
 from pathlib import Path
-from ALPHA_GEN import NUM_PAULIS
 from threadpoolctl import threadpool_limits
 
 import numpy as np
@@ -83,7 +82,7 @@ def cpu_cap():
 
 def _init_worker(nq, nx, ny, nb, ham, gamma, istate):
     threadpool_limits(limits=1)
-    global _NQ, _NX, _NY, _NB, _HAM, _GAMMA, _istate
+    global _NQ, _NX, _NY, _NB, _HAM, _GAMMA, _ISTATE
     _NQ, _NX, _NY, _NB, _HAM, _GAMMA, _ISTATE = nq, nx, ny, nb, ham, gamma, istate
 
 def _worker(args):
@@ -94,7 +93,6 @@ def _worker(args):
     init_state = get_init_state(_NQ, _ISTATE)
 
     L = get_L(_NQ, _NX, _NY, _HAM, eps=eps, gamma=_GAMMA, seed=seed)
-    NUM_PAULIS = len(ostrings)
     Lp = U.dag() * L * U
     _, V = np.linalg.eig(Lp.full())
     cn = np.linalg.cond(V)
@@ -113,10 +111,10 @@ def get_parser():
     parser.add_argument("--nx",      type=int,   default=2,       help="Number of sites in x direction")
     parser.add_argument("--ny",      type=int,   default=2,       help="Number of sites in y direction")
     parser.add_argument("--nb",      type=int,   default=4,       help="Max Pauli observable weight")
-    parser.add_argument("--ham",     type=str,   default='tfim',  help="Hamiltonian type",  choices=['tfim','heis'])
-    parser.add_argument("--istate",  type=str,   default='ghz',   help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
+    parser.add_argument("--ham",     type=str,   default='heis',  help="Hamiltonian type",  choices=['tfim','heis'])
+    parser.add_argument("--istate",  type=str,   default='+-+-',  help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
     parser.add_argument("--trials",  type=int,   default=10,      help="Number of trials per eps value")
-    parser.add_argument("--eps",     type=float, default=0.1,     help="Reference eps value (kept in the eps sweep, used for labeling)")
+    parser.add_argument("--eps",     type=float, default=0,       help="Reference eps value (kept in the eps sweep, used for labeling)")
     parser.add_argument("--epsmin",  type=float, default=0.0,     help="Minimum eps in the sweep")
     parser.add_argument("--epsmax",  type=float, default=0.3,     help="Maximum eps in the sweep")
     parser.add_argument("--epsnum",  type=int,   default=13,      help="Number of eps values in the sweep")
@@ -141,7 +139,7 @@ if __name__ == "__main__":
     EPSMIN = args.epsmin
     EPSMAX = args.epsmax
     EPSNUM = args.epsnum
-    trials = args.trials
+    TRIALS = args.trials
     NUM_WORKERS = args.nw
 
     if EPS:
@@ -152,8 +150,18 @@ if __name__ == "__main__":
     DIR = Path(args.dir) / LABEL
     DIR.mkdir(parents=True, exist_ok=True)
 
+    with open(DIR / "info.json", 'r') as handle:
+        info = json.load(handle)
+
+    #make sure what user has specified matches existing info json
+    assert info['nx'] == NX
+    assert info['ny'] == NY
+    assert info['ham'] == HAM
+    assert info['istate'] == ISTATE
+    assert info['eps'] == EPS
+
     epss = np.linspace(EPSMIN, EPSMAX, EPSNUM)  # should contain EPS
-    assert EPS in epss, f"EPS={EPS} not in epss={epss}"
+    assert np.any(np.isclose(epss, EPS)), f"EPS={EPS} not in epss={epss}"
 
     mp.set_start_method("spawn", force=True)
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
@@ -162,7 +170,7 @@ if __name__ == "__main__":
 
     tasks = [
         (ii, jj, epss[jj], 42 if ii == 0 else ii)
-        for ii in range(trials)
+        for ii in range(TRIALS)
         for jj in range(len(epss))
     ]
 
@@ -176,8 +184,8 @@ if __name__ == "__main__":
         ))
 
     NUM_PAULIS = len(pbw(NQ, nb=NB, max=True))
-    state_sparsities = np.zeros((trials, len(epss)), dtype=np.float64)
-    observable_sparsities = np.zeros((trials, len(epss), NUM_PAULIS), dtype=np.float64)
+    state_sparsities = np.zeros((TRIALS, len(epss)), dtype=np.float64)
+    observable_sparsities = np.zeros((TRIALS, len(epss), NUM_PAULIS), dtype=np.float64)
     for ii, jj, state_sparsity, obs_sparsity in results:
         state_sparsities[ii, jj] = state_sparsity
         observable_sparsities[ii, jj, :] = obs_sparsity
@@ -185,7 +193,6 @@ if __name__ == "__main__":
     np.savez(
         DIR / "sparsities.npz",
         epss=epss,
-        num_paulis=NUM_PAULIS,
         state_sparsities=state_sparsities,
         observable_sparsities=observable_sparsities,
     )

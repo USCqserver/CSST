@@ -171,7 +171,6 @@ if __name__ == "__main__":
 
     if EPS:
         print(f"{YELLOW}Perturbing Hamiltonian coefficients with max percentage {EPS}...{RESET}")
-    
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"
     else:
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
