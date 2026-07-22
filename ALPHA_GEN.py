@@ -80,9 +80,9 @@ def _init_mm(name: str, path: str, mmap_mode: str, flush_every: int | None = Non
         # atexit.register(arr.flush)
     return
     
-def _init_worker_cs(all_mm_data, times, times_subs, alphas, rescale, axis, inverse, fintint, replace):
+def _init_worker_cs(all_mm_data, times, times_subs, alphas, rescale, axis, inverse, fitint, replace):
     global _times, _times_subs, _alphas, _rescale, _axis, _inverse, _fitint, _replace
-    _times, _times_subs, _alphas, _rescale, _axis, _inverse, _fitint, _replace = times, times_subs, alphas, rescale, axis, inverse, fintint, replace
+    _times, _times_subs, _alphas, _rescale, _axis, _inverse, _fitint, _replace = times, times_subs, alphas, rescale, axis, inverse, fitint, replace
     threadpool_limits(limits=1)
     for mm_data in all_mm_data:
         _init_mm(*mm_data)
@@ -108,6 +108,14 @@ def _worker_cs(args):
     if _flush['cs']['cnt'] % _flush['cs']['every'] == 0:
         _mm['cs'].flush()
     return
+
+def cpu_cap():
+    v = os.environ.get("SLURM_CPUS_PER_TASK")
+    if v:
+        return int(v)
+
+    n = os.cpu_count() or 1
+    return max(1, n-1)
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Command line arguments for CSST")
@@ -139,7 +147,8 @@ def get_parser():
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
-    pprint.pprint(args)
+    pprint.pprint(vars(args))
+    print("\n")
 
     NX = args.nx
     NY = args.ny
@@ -168,8 +177,6 @@ if __name__ == "__main__":
 
     DIR = Path(args.dir) / LABEL
     DIR.mkdir(parents=True, exist_ok=True)
-
-    assert ISTATE in ['ghz','w','r','rp','hr','hrp'] or (len(ISTATE) == NQ and set(ISTATE).issubset(['0','1','+','-','>','<']))
     
     with open(DIR / "info.json", 'r') as handle:
         info = json.load(handle)
@@ -215,12 +222,6 @@ if __name__ == "__main__":
               "replace": REPLACE
               }
 
-    ########## MP SETUP OUTSIDE MAIN ##########
-    try:
-        mp.set_start_method("spawn", force=True)
-    except RuntimeError:
-        pass
-    threadpool_limits(limits=1)
     ###########################################
 
     exact_path = DIR / "exacts.npy"
@@ -243,7 +244,7 @@ if __name__ == "__main__":
     cs_path = RUN_DIR / f"cs_{run_id:04d}.npy"
     cs_errs = create_memmap(cs_path, shape=(NUM_PAULIS,NSNUM,MNUM,ALPHA_NUM,8), dtype=np.float32, fill=np.nan)
     print(f"{'Size of cs_errs:':<20} {cs_errs.nbytes / (1024**2):8.2f} MB")
-    print(f"Run id: {run_id:04d}\n")
+    print(f"Run id: {run_id:04d}")
 
     snrs = errs[:,:,6].flatten()
     if SNR_CUTOFF is not None:
@@ -253,17 +254,10 @@ if __name__ == "__main__":
     else:
         print(f"{YELLOW}Not filtering low SNR observables{RESET}")
 
-    def cpu_cap():
-        v = os.environ.get("SLURM_CPUS_PER_TASK")
-        if v:
-            return int(v)
-    
-        n = os.cpu_count() or 1
-        return max(1, n-1)
-
+    mp.set_start_method("spawn", force=True)
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
-    
     print(f"{CYAN}Using multiprocessing with {NUM_WORKERS} workers...{RESET}")
+    print("\n")
 
     with mp.Pool(processes=NUM_WORKERS,
                  initializer=_init_worker_cs,

@@ -213,7 +213,7 @@ def get_h_ops(nq,model,graph=None,seed=None,eps=0,k=None):
         assert edges, "Must provide graph for heisenberg model"
         H_ops = heisenberg_model_ops(nq, edges=edges, jx=1, jy=1, jz=1)
     elif model == 'random':
-        assert seed, "Must provide seed for random model"
+        assert seed is not None, "Must provide seed for random model"
         temp = pbw(nq, edges=edges, k=k)
         H_ops = rand_op(temp, seed=seed)
     else:
@@ -294,3 +294,56 @@ def get_init_state(
         "or qutip.Qobj (Hamiltonian)."
     )
 
+def expand_into(V=None,Vinv=None,observable=None,state=None,U=None):
+    """
+    Expand a state and/or observable in terms of the left/right eigenvectors (Vinv/V)
+    of a Liouvillian L.
+
+    If V,Vinv were instead computed from Lp = U.dag() * L * U (e.g. L expressed in
+    the Pauli basis), pass the same change-of-basis unitary U so that the vectorized
+    state/observable get rotated into that basis before the overlaps are computed.
+    """
+    assert state is not None or observable is not None, "Must provide either a state or an observable"
+
+    if state is not None:
+        assert Vinv is not None, "Must provide left eigenvectors of L if providing a state"
+        if state.type == 'ket':
+            state = qt.ket2dm(state)
+        vec_state = qt.operator_to_vector(state)
+        if U is not None:
+            vec_state = U.dag() * vec_state
+        temp = vec_state.full().flatten()
+
+        state_overlaps = []
+        for irow,row in enumerate(Vinv): #left evects of L
+            state_overlaps.append(np.dot(row,temp))
+
+    if observable is not None:
+        assert V is not None, "Must provide right eigenvectors of L if providing an observable"
+        vec_obs = qt.operator_to_vector(observable)
+        if U is not None:
+            vec_obs = U.dag() * vec_obs
+        temp = vec_obs.full().flatten().conj()
+
+        observable_overlaps = []
+        for icol,col in enumerate(V.T): #right evects of L
+            observable_overlaps.append(np.dot(temp,col))
+
+    if observable is not None and state is not None:
+        return np.abs(observable_overlaps), np.abs(state_overlaps)
+    elif state is not None:
+        return np.abs(state_overlaps)
+    elif observable is not None:
+        return np.abs(observable_overlaps)
+
+def COB(n_qubits):
+    """Columns are vectorized, normalized n-qubit Pauli operators."""
+    paulis_1q = [qt.qeye(2), qt.sigmax(), qt.sigmay(), qt.sigmaz()]
+    cols = []
+    for combo in itertools.product(paulis_1q, repeat=n_qubits):
+        P = qt.tensor(*combo) if n_qubits > 1 else combo[0]
+        cols.append(qt.operator_to_vector(P).full().flatten())
+    B = np.column_stack(cols) / np.sqrt(2**n_qubits)
+    B = qt.Qobj(B)
+    B.dims = [[[2]*n_qubits]*2, [[2]*n_qubits]*2]  # match operator_to_vector's dims convention
+    return B
