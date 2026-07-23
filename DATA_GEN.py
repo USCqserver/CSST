@@ -1,4 +1,3 @@
-import os
 import pprint
 import argparse
 import sys
@@ -7,17 +6,16 @@ import json
 import multiprocessing as mp
 from multiprocessing import shared_memory
 from pathlib import Path
-
 import networkx
 import numpy as np
 import qutip as qt
 from tqdm import tqdm
 from threadpoolctl import threadpool_limits
-from numpy.lib.format import open_memmap
 
 from utils.cs_utils import *
 from utils.pauli_utils import *
 from utils.shadow_utils import *
+from utils.misc_utils import *
 
 # ====== color preamble ======
 RESET   = "\033[0m"
@@ -34,33 +32,6 @@ _mm = {}
 _flush = {}
 
 ######### MP FUNCTIONS ##########
-def create_memmap(mm_path, shape, dtype, fill, order=False):
-    """
-    w+ mode: create or overwrite existing file for reading and writing.
-    If mode == 'w+' then shape must also be specified.
-    """
-    if os.path.exists(mm_path):
-        print(Warning(f"File {mm_path} already exists and will be overwritten."))
-
-    mm = open_memmap(mm_path, mode="w+", dtype=dtype, shape=shape, fortran_order=order)
-    mm[...] = fill
-    mm.flush()
-    return mm
-
-def _init_mm(name: str, path: str, mmap_mode: str, flush_every: int | None = None):
-    """
-    Register a memmap/array under a name in a global dict.
-    mmap_mode: 'r' or 'r+' (or None if you want normal np.load without mmap)
-    """
-    global _mm, _flush
-
-    arr = np.load(path, mmap_mode=mmap_mode)
-    _mm[name] = arr
-
-    if mmap_mode in ("r+", "w+", "w") and flush_every:
-        _flush[name] = {"cnt": 0, "every": int(flush_every)}
-        # atexit.register(arr.flush)
-
 def _init_states(shm_name, shape, dtype_str):
     global _shm_states, _states
     _shm_states = shared_memory.SharedMemory(name=shm_name, create=False)  # keep reference!
@@ -74,7 +45,6 @@ def _init_ops(ostrings):
     _ops = [p2op(x, norm=False) for x in ostrings]
     _ostrings = ostrings
 
-######################
 def _init_worker_exact(state_data, ostrings):
     threadpool_limits(limits=1)
     _init_states(*state_data)
@@ -88,14 +58,13 @@ def _worker_exact(itt):
     # print(np.max(np.abs(np.imag(expvals))))
     return itt, expvals
 
-######################
 def _init_worker_shadow(state_data, all_mm_data, nq, nsmax):
     threadpool_limits(limits=1)
     global _NQ, _NSMAX
     _NQ, _NSMAX = nq, nsmax
     _init_states(*state_data)
     for mm_data in all_mm_data:
-        _init_mm(*mm_data)
+        init_mm(*mm_data)
 
 def _worker_shadow(args):
     itt, seed = args
@@ -107,13 +76,12 @@ def _worker_shadow(args):
     if _flush['shadow']['cnt'] % _flush['shadow']['every'] == 0:
         _mm['shadow'].flush()
 
-######################
 def _init_worker_est(all_mm_data, ostrings, shadow_subs):
     global _shadow_subs
     _shadow_subs = shadow_subs
     threadpool_limits(limits=1)
     for mm_data in all_mm_data:
-        _init_mm(*mm_data)
+        init_mm(*mm_data)
     _init_ops(ostrings)
 
 def _worker_est(itt):
@@ -121,14 +89,6 @@ def _worker_est(itt):
     _flush['est']['cnt'] += 1
     if _flush['est']['cnt'] % _flush['est']['every'] == 0:
         _mm['est'].flush()
-
-def cpu_cap():
-    """Number of worker processes to use: SLURM's per-task allocation if set, else cpu_count-1."""
-    v = os.environ.get("SLURM_CPUS_PER_TASK")
-    if v:
-        return int(v)
-    n = os.cpu_count() or 1
-    return max(1, n-1)
 
 ######################
 def get_parser():
@@ -178,7 +138,8 @@ if __name__ == "__main__":
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
 
     DIR = Path(args.dir) / LABEL
-    print(f"Creating directory {DIR}")
+    if not DIR.exists():
+        print(f"Creating directory {DIR}")
     DIR.mkdir(parents=True, exist_ok=True)
 
     ########## MODEL ##########
@@ -271,6 +232,7 @@ if __name__ == "__main__":
             'tmax':   times[-1],
             'n':      N,
             'dt':     dt,
+            'gamma':  GAMMA,
             'nw':     NUM_WORKERS,
             'eps':    EPS,
             }
@@ -278,6 +240,7 @@ if __name__ == "__main__":
     def to_builtin(x):
         """Convert numpy scalars to plain Python builtins so they're JSON-serializable."""
         return x.item() if hasattr(x, "item") else x
+    
     info = {k: to_builtin(v) for k, v in info.items()}
     with (DIR / "info.json").open("w") as f:
         json.dump(info, f, indent=2)

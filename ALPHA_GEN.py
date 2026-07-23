@@ -1,10 +1,11 @@
 from email.policy import default
-import pickle, os, pprint, argparse, sys, warnings, atexit, json
+import json
+import pprint
+import argparse
+import sys
 from pathlib import Path
-
 import numpy as np
 from tqdm import tqdm
-
 import multiprocessing as mp
 from threadpoolctl import threadpool_limits
 from numpy.lib.format import open_memmap
@@ -12,6 +13,7 @@ from numpy.lib.format import open_memmap
 from utils.cs_utils import *
 from utils.pauli_utils import *
 from utils.shadow_utils import *
+from utils.misc_utils import *
 
 # ====== Color Preamble ======
 RESET   = "\033[0m"
@@ -27,9 +29,6 @@ _mm = {}
 _flush = {}
 
 ######### DATA LOGGING FUNCTIONS ##########
-# numpy scalar -> python scalar (for json)
-to_builtin = lambda x: x.item() if hasattr(x, "item") else x
-
 def reserve_run_id_and_write_params(runs_dir: Path, params: dict, start: int = 1) -> int:
     runs_dir = Path(runs_dir)
     runs_dir.mkdir(parents=True, exist_ok=True)
@@ -45,47 +44,14 @@ def reserve_run_id_and_write_params(runs_dir: Path, params: dict, start: int = 1
         except FileExistsError:
             run_id += 1
 
-def write_run_params(runs_dir: Path, run_id: int, params: dict) -> Path:
-    p = runs_dir / f"params_{run_id:04d}.json"
-    # flatten + clean numpy scalars if any
-    clean = {k: to_builtin(v) for k, v in params.items()}
-    p.write_text(json.dumps(clean, indent=2, sort_keys=True) + "\n")
-    return
-
 ######### MP FUNCTIONS ##########
-def create_memmap(mm_path, shape, dtype, fill, order=False):
-    """ 
-    w+ mode: create or overwrite existing file for reading and writing. If mode == 'w+' then shape must also be specified
-    """
-    if os.path.exists(mm_path):
-        print(Warning(f"File {mm_path} already exists and will be overwritten."))
-
-    mm = open_memmap(mm_path, mode="w+", dtype=dtype, shape=shape, fortran_order=order)
-    mm[...] = fill
-    mm.flush()
-    return mm
-
-def _init_mm(name: str, path: str, mmap_mode: str, flush_every: int | None = None):
-    """
-    Register a memmap/array under a name in a global dict.
-    mmap_mode: 'r' or 'r+' (or None if you want normal np.load without mmap)
-    """
-    global _mm, _flush
-
-    arr = np.load(path, mmap_mode=mmap_mode)
-    _mm[name] = arr
-
-    if mmap_mode in ("r+", "w+", "w") and flush_every:
-        _flush[name] = {"cnt": 0, "every": int(flush_every)}
-        # atexit.register(arr.flush)
-    return
     
 def _init_worker_cs(all_mm_data, times, times_subs, alphas, rescale, axis, inverse, fitint, replace):
     global _times, _times_subs, _alphas, _rescale, _axis, _inverse, _fitint, _replace
     _times, _times_subs, _alphas, _rescale, _axis, _inverse, _fitint, _replace = times, times_subs, alphas, rescale, axis, inverse, fitint, replace
     threadpool_limits(limits=1)
     for mm_data in all_mm_data:
-        _init_mm(*mm_data)
+        init_mm(*mm_data)
     return
 
 def _worker_cs(args):
@@ -109,13 +75,7 @@ def _worker_cs(args):
         _mm['cs'].flush()
     return
 
-def cpu_cap():
-    v = os.environ.get("SLURM_CPUS_PER_TASK")
-    if v:
-        return int(v)
-
-    n = os.cpu_count() or 1
-    return max(1, n-1)
+######################
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Command line arguments for CSST")
@@ -178,8 +138,11 @@ if __name__ == "__main__":
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
 
     DIR = Path(args.dir) / LABEL
-    DIR.mkdir(parents=True, exist_ok=True)
-    
+    if not DIR.exists():
+        raise FileNotFoundError(f"Directory {DIR} does not exist.  Make sure to run DATA_GEN.py first to generate the data files.")
+
+    info_path = DIR / "info.json"
+    assert info_path.exists(), f"Info file {info_path} does not exist - create it first with DATA_GEN.py"
     with open(DIR / "info.json", 'r') as handle:
         info = json.load(handle)
 

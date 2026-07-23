@@ -2,7 +2,11 @@
 # coding: utf-8
 
 from tqdm import tqdm
-import random, os, argparse, pprint, json, sys
+import os
+import argparse
+import pprint
+import json
+import sys
 import multiprocessing as mp
 from pathlib import Path
 from threadpoolctl import threadpool_limits
@@ -72,13 +76,6 @@ def get_sparsity(x, type):
         return effective_sparsity(x)
     else:
         raise ValueError(f"Unknown sparsity type: {type}")
-
-def cpu_cap():
-    v = os.environ.get("SLURM_CPUS_PER_TASK")
-    if v:
-        return int(v)
-    n = os.cpu_count() or 1
-    return max(1, n - 1)
 
 def _init_worker(nq, nx, ny, nb, ham, gamma, istate):
     threadpool_limits(limits=1)
@@ -153,14 +150,41 @@ if __name__ == "__main__":
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}"
 
     DIR = Path(args.dir) / LABEL
+    if not DIR.exists():
+        print(f"Creating directory {DIR}")
     DIR.mkdir(parents=True, exist_ok=True)
-
-    with open(DIR / "info.json", 'r') as handle:
-        info = json.load(handle)
 
     epss = np.linspace(EPSMIN, EPSMAX, EPSNUM)  # should contain EPS
     assert np.any(np.isclose(epss, EPS)), f"EPS={EPS} not in epss={epss}"
-    
+
+    import cProfile
+    print(threadpool_limits())
+    def profile_body():
+
+        NQ, NB, NX, NY, HAM, GAMMA, ISTATE = 4, 4, 1, 4, 'tfim', 1e-2, 'ghz'
+        U = COB(NQ)
+        Udag = U.dag()
+        ostrings = pbw(NQ, nb=NB, max=True)
+        NUM_PAULIS = len(ostrings)
+        G = nx.generators.lattice.grid_2d_graph(NX,NY)
+        G = nx.convert_node_labels_to_integers(G)
+        init_state = get_init_state(NQ, ISTATE, graph=G)
+
+        L = get_L(NQ, NX, NY, HAM, eps=0.1, gamma=GAMMA, seed=42)
+        Lp = Udag * L * U
+        _, V = np.linalg.eig(Lp.full())
+        cn = np.linalg.cond(V)
+        if cn > 1e6:
+            print(f"Warning: Condition number of V is large ({cn:.2e}) for trial {ii}, eps {0.1:.2f}. Results may be inaccurate.")
+        Vinv = np.linalg.inv(V)
+        _ = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U, Udag=Udag), type='gini')
+        obs_sparsity = np.zeros(NUM_PAULIS, dtype=np.float64)
+        for kk in range(NUM_PAULIS):
+            _ = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U, Udag=Udag), type='gini')
+
+    cProfile.run('profile_body()', sort='cumtime')
+    sys.exit(0)
+
     mp.set_start_method("spawn", force=True)
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
     print(f"{CYAN}Using multiprocessing with {NUM_WORKERS} workers...{RESET}")
