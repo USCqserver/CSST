@@ -57,24 +57,15 @@ def gini_sparsity(v):
     gini = (2 * np.sum(index * v)) / (n * np.sum(v)) - (n + 1) / n
     return gini / (1 - 1/n)
 
-def hoyer_sparsity(v):
-    n = len(v)
-    l1 = np.sum(np.abs(v))
-    l2 = np.linalg.norm(v)
-    if l2 == 0: return 1.0
-    return (np.sqrt(n) - l1/l2) / (np.sqrt(n) - 1)
-
-def effective_sparsity(v, tol=1e-1):
-    k = np.sum(np.abs(v) > tol)   # number of "active" components
-    return 1 - k / len(v)
+def threshold_sparsity(v, tol=1e-3):
+    k = np.sum(np.abs(v) <= tol)
+    return k / len(v)
 
 def get_sparsity(x, type):
     if type == 'gini':
         return gini_sparsity(x)
-    elif type == 'hoyer':
-        return hoyer_sparsity(x)
-    elif type == 'effective':
-        return effective_sparsity(x)
+    elif type == 'threshold':
+        return threshold_sparsity(x)
     else:
         raise ValueError(f"Unknown sparsity type: {type}")
 
@@ -100,11 +91,13 @@ def _worker(args):
     if cn > 1e6:
         print(f"Warning: Condition number of V is large ({cn:.2e}) for trial {ii}, eps {eps:.2f}. Results may be inaccurate.")
     Vinv = np.linalg.inv(V)
-    state_sparsity = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U, Udag=Udag), type='gini')
-    obs_sparsity = np.zeros(NUM_PAULIS, dtype=np.float64)
+    a = expand_into(Vinv=Vinv, state=init_state, U=U, Udag=Udag)
+    sparsities = np.zeros(NUM_PAULIS, dtype=np.float64)
     for kk in range(NUM_PAULIS):
-        obs_sparsity[kk] = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U, Udag=Udag), type='gini')
-    return ii, jj, state_sparsity, obs_sparsity
+        b = expand_into(V=V, observable=p2op(ostrings[kk]), U=U, Udag=Udag)
+        c = np.multiply(a, b)
+        sparsities[kk] = get_sparsity(c, type='threshold')
+    return ii, jj, sparsities
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Command line arguments for CSST sparsity sweep")
@@ -217,16 +210,20 @@ if __name__ == "__main__":
         ))
 
     NUM_PAULIS = len(pbw(NQ, nb=NB, max=True))
-    state_sparsities = np.zeros((TRIALS, len(epss)), dtype=np.float64)
-    observable_sparsities = np.zeros((TRIALS, len(epss), NUM_PAULIS), dtype=np.float64)
-    for ii, jj, state_sparsity, obs_sparsity in results:
-        state_sparsities[ii, jj] = state_sparsity
-        observable_sparsities[ii, jj, :] = obs_sparsity
+    all_sparsities = np.zeros((TRIALS, len(epss), NUM_PAULIS), dtype=np.float64)
+    for ii, jj, sparsities in results:
+        all_sparsities[ii, jj, :] = sparsities
+
+    # np.savez(
+    #     DIR / "sparsities.npz",
+    #     epss=epss,
+    #     state_sparsities=state_sparsities,
+    #     observable_sparsities=observable_sparsities,
+    # )
 
     np.savez(
         DIR / "sparsities.npz",
         epss=epss,
-        state_sparsities=state_sparsities,
-        observable_sparsities=observable_sparsities,
+        sparsities=all_sparsities,
     )
 
