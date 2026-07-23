@@ -16,6 +16,7 @@ from utils.cs_utils import *
 from utils.pauli_utils import *
 from utils.shadow_utils import *
 from utils.misc_utils import *
+from utils import misc_utils
 
 # ====== color preamble ======
 RESET   = "\033[0m"
@@ -27,9 +28,6 @@ CYAN    = "\033[96m"
 
 _FLUSH_EVERY_SHADOWS = 16
 _FLUSH_EVERY_EST = 64
-
-_mm = {}
-_flush = {}
 
 ######### MP FUNCTIONS ##########
 def _init_states(shm_name, shape, dtype_str):
@@ -71,10 +69,10 @@ def _worker_shadow(args):
     rho = qt.Qobj(_states[itt], dims=[[2]*_NQ]*2, copy=False)
     rho = rho if rho.isherm else (rho + rho.dag())/2  # enforce hermiticity
 
-    _mm['shadow'][itt] = get_shadows(rho, _NSMAX, seed=seed)  # (NSMAX, Nq, 2)
-    _flush['shadow']['cnt'] += 1
-    if _flush['shadow']['cnt'] % _flush['shadow']['every'] == 0:
-        _mm['shadow'].flush()
+    misc_utils._mm['shadow'][itt] = get_shadows(rho, _NSMAX, seed=seed)  # (NSMAX, Nq, 2)
+    misc_utils._flush['shadow']['cnt'] += 1
+    if misc_utils._flush['shadow']['cnt'] % misc_utils._flush['shadow']['every'] == 0:
+        misc_utils._mm['shadow'].flush()
 
 def _init_worker_est(all_mm_data, ostrings, shadow_subs):
     global _shadow_subs
@@ -85,10 +83,10 @@ def _init_worker_est(all_mm_data, ostrings, shadow_subs):
     _init_ops(ostrings)
 
 def _worker_est(itt):
-    _mm['est'][itt] = estimate_batch(_mm['shadow'][itt], _ostrings, _shadow_subs)
-    _flush['est']['cnt'] += 1
-    if _flush['est']['cnt'] % _flush['est']['every'] == 0:
-        _mm['est'].flush()
+    misc_utils._mm['est'][itt] = estimate_batch(misc_utils._mm['shadow'][itt], _ostrings, _shadow_subs)
+    misc_utils._flush['est']['cnt'] += 1
+    if misc_utils._flush['est']['cnt'] % misc_utils._flush['est']['every'] == 0:
+        misc_utils._mm['est'].flush()
 
 ######################
 def get_parser():

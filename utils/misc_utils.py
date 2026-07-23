@@ -14,6 +14,9 @@ def create_memmap(mm_path, shape, dtype, fill, order=False):
     mm.flush()
     return mm
 
+_mm = {}
+_flush = {}
+
 def init_mm(name: str, path: str, mmap_mode: str, flush_every: int | None = None):
     """
     Register a memmap/array under a name in a global dict.

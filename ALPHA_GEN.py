@@ -14,6 +14,7 @@ from utils.cs_utils import *
 from utils.pauli_utils import *
 from utils.shadow_utils import *
 from utils.misc_utils import *
+from utils import misc_utils
 
 # ====== Color Preamble ======
 RESET   = "\033[0m"
@@ -24,9 +25,6 @@ CYAN    = "\033[96m"
 # ============================
 
 _FLUSH_EVERY_CS = 1024
-
-_mm = {}
-_flush = {}
 
 ######### DATA LOGGING FUNCTIONS ##########
 def reserve_run_id_and_write_params(runs_dir: Path, params: dict, start: int = 1) -> int:
@@ -59,7 +57,7 @@ def _worker_cs(args):
     m = _times_subs[kk]
     recon, _ = basis_pursuit(times=_times, 
                              num_samps=m, 
-                             data=_mm['est'][:,ii,jj], 
+                             data=misc_utils._mm['est'][:,ii,jj],
                              alpha=_alphas[ll], 
                              seed=42, 
                              rescale=_rescale, 
@@ -68,11 +66,11 @@ def _worker_cs(args):
                              fit_intercept=_fitint,
                              replace=_replace)
     
-    _mm['cs'][ii,jj,kk,ll,:] = get_errors(recon, _mm['exact'][:,ii])
+    misc_utils._mm['cs'][ii,jj,kk,ll,:] = get_errors(recon, misc_utils._mm['exact'][:,ii])
 
-    _flush['cs']['cnt'] += 1
-    if _flush['cs']['cnt'] % _flush['cs']['every'] == 0:
-        _mm['cs'].flush()
+    misc_utils._flush['cs']['cnt'] += 1
+    if misc_utils._flush['cs']['cnt'] % misc_utils._flush['cs']['every'] == 0:
+        misc_utils._mm['cs'].flush()
     return
 
 ######################
