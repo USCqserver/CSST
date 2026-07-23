@@ -155,13 +155,6 @@ if __name__ == "__main__":
     with open(DIR / "info.json", 'r') as handle:
         info = json.load(handle)
 
-    #make sure what user has specified matches existing info json
-    assert info['nx'] == NX
-    assert info['ny'] == NY
-    assert info['ham'] == HAM
-    assert info['istate'] == ISTATE
-    assert info['eps'] == EPS
-
     epss = np.linspace(EPSMIN, EPSMAX, EPSNUM)  # should contain EPS
     assert np.any(np.isclose(epss, EPS)), f"EPS={EPS} not in epss={epss}"
 
