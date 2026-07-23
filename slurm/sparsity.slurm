@@ -29,14 +29,16 @@ EPSMIN=0.0
 EPSMAX=0.3
 EPSNUM=13
 GAMMA=1e-2
-NW=$SLURM_CPUS_PER_TASK
 TPLIMIT=1
+NW=$((SLURM_CPUS_PER_TASK / TPLIMIT))
 
 # -------- Work dir on SCRATCH (so ./data lands here) --------
 WORKDIR="$SCRATCH_ROOT/dst"
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
+# NOTE: workers override these via threadpool_limits(limits=TPLIMIT) in
+# their init function, regardless of what's exported here.
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
@@ -46,6 +48,12 @@ export NUMEXPR_NUM_THREADS=1
 # (Batch shells don't read your ~/.bashrc)
 source "$CONDA_SH"
 conda activate "$CONDA_ENV"
+
+# -------- Warn on thread oversubscription --------
+TOTAL_THREADS=$((NW * TPLIMIT))
+if [ "$TOTAL_THREADS" -gt "$SLURM_CPUS_PER_TASK" ]; then
+    echo "WARNING: NW ($NW) * TPLIMIT ($TPLIMIT) = $TOTAL_THREADS threads requested, exceeding the $SLURM_CPUS_PER_TASK allocated CPUs. This will oversubscribe the node."
+fi
 
 # -------- Run script from repo; I/O happens in $WORKDIR --------
 python "$REPO_PATH/SPARSITY.py" \
