@@ -198,6 +198,7 @@ if __name__ == "__main__":
     mp.set_start_method("spawn", force=True)
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
     print(f"{CYAN}Using multiprocessing with {NUM_WORKERS} workers...{RESET}")
+    print(f"{CYAN}Threadpool limit per worker: {TPLIMIT}{RESET}")
     print("\n")
 
     tasks = [

@@ -30,6 +30,7 @@ AMIN=-7
 AMAX=-2
 ANUM=40
 NW=64
+TPLIMIT=1
 SNR=-1
 RESCALE=0
 AXIS=1
@@ -67,6 +68,7 @@ python "$REPO_PATH/ALPHA_GEN.py" \
     --amax	"$AMAX"		\
     --anum	"$ANUM"		\
     --nw	"$NW"		\
+    --tplimit	"$TPLIMIT"	\
     --snr	"$SNR"		\
     --rescale	"$RESCALE"	\
     --axis	"$AXIS"		\

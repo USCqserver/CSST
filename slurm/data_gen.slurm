@@ -28,6 +28,7 @@ NSMIN=50
 NSMAX=50000
 NSNUM=30
 NW=$SLURM_CPUS_PER_TASK
+TPLIMIT=1
 EPS=0.1
 
 # -------- Work dir on SCRATCH (so ./data lands here) --------
@@ -58,4 +59,5 @@ python "$REPO_PATH/DATA_GEN.py" \
     --nsnum 	"$NSNUM" 	\
     --istate 	"$ISTATE" 	\
     --nw 	"$NW"		\
+    --tplimit	"$TPLIMIT"	\
     --eps	"$EPS"

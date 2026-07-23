@@ -30,6 +30,7 @@ EPSMAX=0.3
 EPSNUM=13
 GAMMA=1e-2
 NW=$SLURM_CPUS_PER_TASK
+TPLIMIT=1
 
 # -------- Work dir on SCRATCH (so ./data lands here) --------
 WORKDIR="$SCRATCH_ROOT/dst"
@@ -60,4 +61,5 @@ python "$REPO_PATH/SPARSITY.py" \
     --epsmax	"$EPSMAX"	\
     --epsnum	"$EPSNUM"	\
     --gamma	"$GAMMA"	\
-    --nw 	"$NW"
+    --nw 	"$NW"		\
+    --tplimit	"$TPLIMIT"
