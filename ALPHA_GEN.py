@@ -44,10 +44,10 @@ def reserve_run_id_and_write_params(runs_dir: Path, params: dict, start: int = 1
 
 ######### MP FUNCTIONS ##########
     
-def _init_worker_cs(all_mm_data, times, times_subs, alphas, rescale, axis, inverse, fitint, replace):
+def _init_worker_cs(all_mm_data, times, times_subs, alphas, rescale, axis, inverse, fitint, replace, tplimit):
     global _times, _times_subs, _alphas, _rescale, _axis, _inverse, _fitint, _replace
     _times, _times_subs, _alphas, _rescale, _axis, _inverse, _fitint, _replace = times, times_subs, alphas, rescale, axis, inverse, fitint, replace
-    threadpool_limits(limits=1)
+    threadpool_limits(limits=tplimit)
     for mm_data in all_mm_data:
         init_mm(*mm_data)
     return
@@ -83,6 +83,7 @@ def get_parser():
     parser.add_argument("--ham",    type=str,     default='heis',       help="Hamiltonian type",        choices=['tfim','heis'])
     parser.add_argument("--istate", type=str,     default='neel',       help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
     parser.add_argument("--nw",     type=int,     default=1,            help="Number of workers for multiprocessing")
+    parser.add_argument("--tplimit",type=int,     default=1,            help="Threadpool limit for each worker process")
     parser.add_argument("--eps",    type=float,   default=0,            help="Std dev for perturbation of Ham coeffs")
 
     #new args
@@ -114,6 +115,7 @@ if __name__ == "__main__":
     HAM = args.ham
     ISTATE = args.istate
     NUM_WORKERS = args.nw
+    TPLIMIT = args.tplimit
     EPS = args.eps
     MMIN = args.mmin
     MMAX = args.mmax
@@ -165,6 +167,7 @@ if __name__ == "__main__":
         print(f"{RED}Warning: Mixing synthesis and analysis axes{RESET}")
 
     params = {"nw": NUM_WORKERS,
+              "tplimit": TPLIMIT,
               "mmin": MMIN,
               "mmax": MMAX,
               "mnum": MNUM,
@@ -228,7 +231,8 @@ if __name__ == "__main__":
                             AXIS,
                             INVERSE,
                             FITINT,
-                            REPLACE)) as pool:
+                            REPLACE,
+                            TPLIMIT)) as pool:
 
         #NOTE: using np.nan to flag entries with low SNR, thus I can't also use np.nan to flag uncomputed entries...
         task_iter = (

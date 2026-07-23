@@ -43,8 +43,8 @@ def _init_ops(ostrings):
     _ops = [p2op(x, norm=False) for x in ostrings]
     _ostrings = ostrings
 
-def _init_worker_exact(state_data, ostrings):
-    threadpool_limits(limits=1)
+def _init_worker_exact(state_data, ostrings, tplimit):
+    threadpool_limits(limits=tplimit)
     _init_states(*state_data)
     _init_ops(ostrings)
 
@@ -56,8 +56,8 @@ def _worker_exact(itt):
     # print(np.max(np.abs(np.imag(expvals))))
     return itt, expvals
 
-def _init_worker_shadow(state_data, all_mm_data, nq, nsmax):
-    threadpool_limits(limits=1)
+def _init_worker_shadow(state_data, all_mm_data, nq, nsmax, tplimit):
+    threadpool_limits(limits=tplimit)
     global _NQ, _NSMAX
     _NQ, _NSMAX = nq, nsmax
     _init_states(*state_data)
@@ -74,10 +74,10 @@ def _worker_shadow(args):
     if misc_utils._flush['shadow']['cnt'] % misc_utils._flush['shadow']['every'] == 0:
         misc_utils._mm['shadow'].flush()
 
-def _init_worker_est(all_mm_data, ostrings, shadow_subs):
+def _init_worker_est(all_mm_data, ostrings, shadow_subs, tplimit):
     global _shadow_subs
     _shadow_subs = shadow_subs
-    threadpool_limits(limits=1)
+    threadpool_limits(limits=tplimit)
     for mm_data in all_mm_data:
         init_mm(*mm_data)
     _init_ops(ostrings)
@@ -103,6 +103,7 @@ def get_parser():
     parser.add_argument("--nsmax",  type=int,     default=1000,         help="Max number of shadows")
     parser.add_argument("--nsnum",  type=int,     default=10,           help="Number of shadows to try (logspaced)")
     parser.add_argument("--nw",     type=int,     default=1,            help="Number of workers for multiprocessing")
+    parser.add_argument("--tplimit",type=int,     default=1,            help="Threadpool limit for each worker process")
     parser.add_argument("--eps",    type=float,   default=0,            help="Max percentage of perturbation to Ham coeffs and Lindblad rates")
     parser.add_argument("--gamma",  type=float,   default=1e-2,         help="Common decay rate for all collapse operators")
     return parser
@@ -126,6 +127,7 @@ if __name__ == "__main__":
     EPS = args.eps             # max percentage of perturbation to Ham coeffs and Lindblad rates
     GAMMA = args.gamma         # common decay rate for all collapse operators
     NUM_WORKERS = args.nw      # number of workers
+    TPLIMIT = args.tplimit     # threadpool limit for each worker process
 
     is_valid_init_state(NQ, ISTATE)  # validate istate/nq before creating anything
 
@@ -232,6 +234,7 @@ if __name__ == "__main__":
             'dt':     dt,
             'gamma':  GAMMA,
             'nw':     NUM_WORKERS,
+            'tplimit':TPLIMIT,
             'eps':    EPS,
             }
 
@@ -265,7 +268,7 @@ if __name__ == "__main__":
         #exacts
         with mp.Pool(processes=NUM_WORKERS,
                      initializer=_init_worker_exact,
-                     initargs=(state_data, ostrings,)) as pool:
+                     initargs=(state_data, ostrings, TPLIMIT,)) as pool:
 
             for itt, row in tqdm(pool.imap_unordered(_worker_exact, range(N), chunksize=16),
                                  total=N,
@@ -282,7 +285,8 @@ if __name__ == "__main__":
                      initargs=(state_data,
                                [['shadow', shadow_path, 'r+', _FLUSH_EVERY_SHADOWS]],
                                NQ,
-                               NSMAX)) as pool:
+                               NSMAX,
+                               TPLIMIT)) as pool:
 
             task_iter = (
                 (itt, int(rng.integers(0, 2**32 - 1, dtype=np.uint32)))
@@ -310,7 +314,8 @@ if __name__ == "__main__":
                      initargs=([['shadow', shadow_path, 'r', None],
                                 ['est', est_path, 'r+', _FLUSH_EVERY_EST]],
                                 ostrings,
-                                shadow_subs)) as pool:
+                                shadow_subs,
+                                TPLIMIT)) as pool:
 
             for _ in tqdm(pool.imap_unordered(_worker_est, task_iter, chunksize=10),
                           total=N,

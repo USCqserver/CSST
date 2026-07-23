@@ -9,7 +9,7 @@ import json
 import sys
 import multiprocessing as mp
 from pathlib import Path
-from threadpoolctl import threadpool_limits
+from threadpoolctl import threadpool_limits, threadpool_info
 
 import numpy as np
 import networkx as nx
@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from utils.cs_utils import *
 from utils.pauli_utils import *
 from utils.shadow_utils import *
+from utils.misc_utils import *
 
 # ====== Color Preamble ======
 RESET   = "\033[0m"
@@ -77,8 +78,8 @@ def get_sparsity(x, type):
     else:
         raise ValueError(f"Unknown sparsity type: {type}")
 
-def _init_worker(nq, nx, ny, nb, ham, gamma, istate):
-    threadpool_limits(limits=1)
+def _init_worker(nq, nx, ny, nb, ham, gamma, istate, tplimit):
+    threadpool_limits(limits=tplimit)
     global _NQ, _NX, _NY, _NB, _HAM, _GAMMA, _ISTATE
     _NQ, _NX, _NY, _NB, _HAM, _GAMMA, _ISTATE = nq, nx, ny, nb, ham, gamma, istate
 
@@ -120,6 +121,7 @@ def get_parser():
     parser.add_argument("--epsnum",  type=int,   default=13,      help="Number of eps values in the sweep")
     parser.add_argument("--gamma",   type=float, default=1e-2,    help="Common decay rate for all collapse operators")
     parser.add_argument("--nw",      type=int,   default=1,       help="Number of workers for multiprocessing")
+    parser.add_argument("--tplimit", type=int,   default=1,       help="Threadpool limit for each worker process")
     return parser
 
 if __name__ == "__main__":
@@ -141,6 +143,7 @@ if __name__ == "__main__":
     EPSNUM = args.epsnum
     TRIALS = args.trials
     NUM_WORKERS = args.nw
+    TPLIMIT = args.tplimit
 
     is_valid_init_state(NQ, ISTATE)
 
@@ -157,33 +160,40 @@ if __name__ == "__main__":
     epss = np.linspace(EPSMIN, EPSMAX, EPSNUM)  # should contain EPS
     assert np.any(np.isclose(epss, EPS)), f"EPS={EPS} not in epss={epss}"
 
-    import cProfile
-    print(threadpool_limits())
-    def profile_body():
+    # import cProfile
+    # import pstats
+    # pprint.pprint(threadpool_info())
+    # def profile_body():
+    #     threadpool_limits(limits=4)
+    #     pprint.pprint(threadpool_info())
 
-        NQ, NB, NX, NY, HAM, GAMMA, ISTATE = 4, 4, 1, 4, 'tfim', 1e-2, 'ghz'
-        U = COB(NQ)
-        Udag = U.dag()
-        ostrings = pbw(NQ, nb=NB, max=True)
-        NUM_PAULIS = len(ostrings)
-        G = nx.generators.lattice.grid_2d_graph(NX,NY)
-        G = nx.convert_node_labels_to_integers(G)
-        init_state = get_init_state(NQ, ISTATE, graph=G)
+    #     NQ, NB, NX, NY, HAM, GAMMA, ISTATE = 6, 4, 1, 6, 'tfim', 1e-2, 'ghz'
+    #     U = COB(NQ)
+    #     Udag = U.dag()
+    #     ostrings = pbw(NQ, nb=NB, max=True)
+    #     NUM_PAULIS = len(ostrings)
+    #     G = nx.generators.lattice.grid_2d_graph(NX,NY)
+    #     G = nx.convert_node_labels_to_integers(G)
+    #     init_state = get_init_state(NQ, ISTATE, graph=G)
 
-        L = get_L(NQ, NX, NY, HAM, eps=0.1, gamma=GAMMA, seed=42)
-        Lp = Udag * L * U
-        _, V = np.linalg.eig(Lp.full())
-        cn = np.linalg.cond(V)
-        if cn > 1e6:
-            print(f"Warning: Condition number of V is large ({cn:.2e}) for trial {ii}, eps {0.1:.2f}. Results may be inaccurate.")
-        Vinv = np.linalg.inv(V)
-        _ = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U, Udag=Udag), type='gini')
-        obs_sparsity = np.zeros(NUM_PAULIS, dtype=np.float64)
-        for kk in range(NUM_PAULIS):
-            _ = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U, Udag=Udag), type='gini')
+    #     L = get_L(NQ, NX, NY, HAM, eps=0.1, gamma=GAMMA, seed=42)
+    #     Lp = Udag * L * U
+    #     _, V = np.linalg.eig(Lp.full())
+    #     cn = np.linalg.cond(V)
+    #     if cn > 1e6:
+    #         print(f"Warning: Condition number of V is large ({cn:.2e}) for trial {ii}, eps {0.1:.2f}. Results may be inaccurate.")
+    #     Vinv = np.linalg.inv(V)
+    #     _ = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U, Udag=Udag), type='gini')
+    #     obs_sparsity = np.zeros(NUM_PAULIS, dtype=np.float64)
+    #     for kk in range(NUM_PAULIS):
+    #         _ = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U, Udag=Udag), type='gini')
 
-    cProfile.run('profile_body()', sort='cumtime')
-    sys.exit(0)
+    # profiler = cProfile.Profile()
+    # profiler.enable()
+    # profile_body()
+    # profiler.disable()
+    # pstats.Stats(profiler).sort_stats('cumulative').print_stats(40)
+    # sys.exit(0)
 
     mp.set_start_method("spawn", force=True)
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
@@ -198,7 +208,7 @@ if __name__ == "__main__":
 
     with mp.Pool(processes=NUM_WORKERS,
                  initializer=_init_worker,
-                 initargs=(NQ, NX, NY, NB, HAM, GAMMA, ISTATE),
+                 initargs=(NQ, NX, NY, NB, HAM, GAMMA, ISTATE, TPLIMIT),
                  ) as pool:
         results = list(tqdm(pool.imap_unordered(_worker, tasks),
                             total=len(tasks),
