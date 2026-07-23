@@ -308,14 +308,11 @@ def get_init_state(
         kets = [INIT_STATE_CHAR_LOOKUP[ch] for ch in compact]
         return qt.tensor(kets)
 
-def expand_into(V=None,Vinv=None,observable=None,state=None,U=None):
+def expand_into(V=None, Vinv=None, observable=None, state=None, U=None, Udag=None):
     """
-    Expand a state and/or observable in terms of the left/right eigenvectors (Vinv/V)
-    of a Liouvillian L.
-
-    If V,Vinv were instead computed from Lp = U.dag() * L * U (e.g. L expressed in
-    the Pauli basis), pass the same change-of-basis unitary U so that the vectorized
-    state/observable get rotated into that basis before the overlaps are computed.
+    ...same docstring...
+    Pass Udag (= U.dag(), precomputed once by the caller) instead of U to avoid
+    recomputing the conjugate transpose on every call.
     """
     assert state is not None or observable is not None, "Must provide either a state or an observable"
 
@@ -324,24 +321,18 @@ def expand_into(V=None,Vinv=None,observable=None,state=None,U=None):
         if state.type == 'ket':
             state = qt.ket2dm(state)
         vec_state = qt.operator_to_vector(state)
-        if U is not None:
-            vec_state = U.dag() * vec_state
+        if Udag is not None:
+            vec_state = Udag * vec_state
         temp = vec_state.full().flatten()
-
-        state_overlaps = []
-        for irow,row in enumerate(Vinv): #left evects of L
-            state_overlaps.append(np.dot(row,temp))
+        state_overlaps = Vinv @ temp
 
     if observable is not None:
         assert V is not None, "Must provide right eigenvectors of L if providing an observable"
         vec_obs = qt.operator_to_vector(observable)
-        if U is not None:
-            vec_obs = U.dag() * vec_obs
+        if Udag is not None:
+            vec_obs = Udag * vec_obs
         temp = vec_obs.full().flatten().conj()
-
-        observable_overlaps = []
-        for icol,col in enumerate(V.T): #right evects of L
-            observable_overlaps.append(np.dot(temp,col))
+        observable_overlaps = temp @ V
 
     if observable is not None and state is not None:
         return np.abs(observable_overlaps), np.abs(state_overlaps)

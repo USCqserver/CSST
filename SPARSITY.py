@@ -88,6 +88,7 @@ def _init_worker(nq, nx, ny, nb, ham, gamma, istate):
 def _worker(args):
     ii, jj, eps, seed = args
     U = COB(_NQ)
+    Udag = U.dag()
     ostrings = pbw(_NQ, nb=_NB, max=True)
     NUM_PAULIS = len(ostrings)
     G = nx.generators.lattice.grid_2d_graph(_NX,_NY)
@@ -95,16 +96,16 @@ def _worker(args):
     init_state = get_init_state(_NQ, _ISTATE, graph=G)
 
     L = get_L(_NQ, _NX, _NY, _HAM, eps=eps, gamma=_GAMMA, seed=seed)
-    Lp = U.dag() * L * U
-    Es, V = np.linalg.eig(Lp.full())
+    Lp = Udag * L * U
+    _, V = np.linalg.eig(Lp.full())
     cn = np.linalg.cond(V)
     if cn > 1e6:
         print(f"Warning: Condition number of V is large ({cn:.2e}) for trial {ii}, eps {eps:.2f}. Results may be inaccurate.")
     Vinv = np.linalg.inv(V)
-    state_sparsity = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U), type='gini')
+    state_sparsity = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U, Udag=Udag), type='gini')
     obs_sparsity = np.zeros(NUM_PAULIS, dtype=np.float64)
     for kk in range(NUM_PAULIS):
-        obs_sparsity[kk] = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U), type='gini')
+        obs_sparsity[kk] = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U, Udag=Udag), type='gini')
     return ii, jj, state_sparsity, obs_sparsity
 
 def get_parser():
@@ -114,7 +115,7 @@ def get_parser():
     parser.add_argument("--ny",      type=int,   default=2,       help="Number of sites in y direction")
     parser.add_argument("--nb",      type=int,   default=4,       help="Max Pauli observable weight")
     parser.add_argument("--ham",     type=str,   default='heis',  help="Hamiltonian type",  choices=['tfim','heis'])
-    parser.add_argument("--istate",  type=str,   default='+-+-',  help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
+    parser.add_argument("--istate",  type=str,   default='neel',  help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
     parser.add_argument("--trials",  type=int,   default=10,      help="Number of trials per eps value")
     parser.add_argument("--eps",     type=float, default=0,       help="Reference eps value (kept in the eps sweep, used for labeling)")
     parser.add_argument("--epsmin",  type=float, default=0.0,     help="Minimum eps in the sweep")
@@ -159,27 +160,7 @@ if __name__ == "__main__":
 
     epss = np.linspace(EPSMIN, EPSMAX, EPSNUM)  # should contain EPS
     assert np.any(np.isclose(epss, EPS)), f"EPS={EPS} not in epss={epss}"
-
-    # import cProfile
-
-    # def profile_body():
-    #     NQ, NB, NX, NY, HAM, GAMMA, ISTATE = 5, 4, 1, 5, 'tfim', 1e-2, 'ghz'
-    #     U = COB(NQ)
-    #     ostrings = pbw(NQ, nb=NB, max=True)
-    #     NUM_PAULIS = len(ostrings)
-    #     init_state = get_init_state(NQ, ISTATE)
-
-    #     L = get_L(NQ, NX, NY, HAM, eps=0.1, gamma=GAMMA, seed=42)
-    #     Lp = U.dag() * L * U
-    #     _, V = np.linalg.eig(Lp.full())
-    #     Vinv = np.linalg.inv(V)
-    #     _ = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U), type='gini')
-    #     for kk in range(NUM_PAULIS):
-    #         _ = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U), type='gini')
-
-    # cProfile.run('profile_body()', sort='cumtime')
-    # sys.exit(0)
-
+    
     mp.set_start_method("spawn", force=True)
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)
     print(f"{CYAN}Using multiprocessing with {NUM_WORKERS} workers...{RESET}")

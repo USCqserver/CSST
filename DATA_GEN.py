@@ -139,7 +139,7 @@ def get_parser():
     parser.add_argument("--ny",     type=int,     default=2,            help="Number of sites in y direction")
     parser.add_argument("--nb",     type=int,     default=4,            help="Max Pauli observable weight")
     parser.add_argument("--ham",    type=str,     default='heis',       help="Hamiltonian type",        choices=['tfim','heis'])
-    parser.add_argument("--istate", type=str,     default='+-+-',       help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
+    parser.add_argument("--istate", type=str,     default='neel',       help="Initial state ('ghz','w','r','rp','hr','hrp', or length NQ string of [0,1,+,-,>,<])")
     parser.add_argument("--n",      type=int,     default=500,          help="Number of time steps")
     parser.add_argument("--nsmin",  type=int,     default=10,           help="Min number of shadows")
     parser.add_argument("--nsmax",  type=int,     default=1000,         help="Max number of shadows")
