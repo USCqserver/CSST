@@ -169,7 +169,7 @@ if __name__ == "__main__":
     GAMMA = args.gamma         # common decay rate for all collapse operators
     NUM_WORKERS = args.nw      # number of workers
 
-    _ = get_init_state(NQ, ISTATE)  # validate istate/nq before creating anything
+    is_valid_init_state(NQ, ISTATE)  # validate istate/nq before creating anything
 
     if EPS:
         print(f"{YELLOW}Perturbing Hamiltonian coefficients with max percentage {EPS}...{RESET}")
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     ########## SIMULATION PARAMETERS ##########
     MAXT = dt * N
     times = np.linspace(0,MAXT,N)
-    init_state = get_init_state(NQ, ISTATE)
+    init_state = get_init_state(NQ, ISTATE, graph=G)
     ostrings = pbw(NQ, nb=NB, max=True)
     NUM_PAULIS = len(ostrings)
 

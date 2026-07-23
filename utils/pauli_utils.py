@@ -1,7 +1,6 @@
 import itertools,random,math
 import matplotlib.pyplot as plt
 
-from typing import Sequence, Union
 
 import numpy as np
 import scipy as sp
@@ -15,6 +14,16 @@ k1b0 = qt.projection(2,1,0)
 k0,k1 = qt.basis(2,0),qt.basis(2,1)
 kp,km,kpi,kmi = Had*k0,Had*k1,S*Had*k0,S*Had*k1
 
+INIT_STATE_CHAR_LOOKUP = {
+    '0': k0,
+    '1': k1,
+    '+': kp,
+    '-': km,
+    '>': kpi,
+    '<': kmi,
+}
+NAMED_INIT_STATES = {'ghz', 'w', 'r', 'hr', 'rp', 'hrp', 'neel'}
+
 PAULI_STR_TO_IDX = {'I':0, 'X':1, 'Y':2, 'Z':3}
 IDX_TO_PAULI_STR = np.array(['I','X','Y','Z'])
 PAULI_STR_TO_PAULI = {'I':I, 'X':X, 'Y':Y, 'Z':Z}
@@ -24,19 +33,19 @@ PAULI_STR_TO_U = {'X':Had,'Y':Had*S.dag(),'Z':I}
 # ==================== PAULI UTILITIES =================== #
 # ============================================================= #
 
-def get_inds(nq,ptype=None):
+def get_inds(nq):
     """
     In the Pauli basis ordered by weight, return the indices that partition the array into blocks
-    of equal Pauli weight
-
-    each index is the first element of some weight block
-
-    If ptype is specified, then instead a 2D array is return, where the first axis is the weight block,
-    and the second axis are the actual indices in that weight block which 
+    of equal Pauli weight. Returns a 2D array where the first axis is the weight block, and the
+    second axis are the indices of all Pauli strings of that weight.
     """
     Ps = pbw(nq)
-    temp = [list(group) for key, group in itertools.groupby(Ps, key=p2w)]
-    inds = [[list(Ps).index(p) for p in arr if is_type(p, ptype)] for arr in temp]
+    temp = [list(group) for _, group in itertools.groupby(Ps, key=p2w)]
+    inds = []
+    start = 0
+    for arr in temp:
+        inds.append(list(range(start, start + len(arr))))
+        start += len(arr)
     return inds
 
 def num_paulis(nq, nb=None, maxw=False):
@@ -44,7 +53,7 @@ def num_paulis(nq, nb=None, maxw=False):
     if nb is None:
         return 4**nq
     elif maxw:
-        return sum([math.comb(nq,k)*(3**k) for k in range(1,nb+1)])
+        return sum([math.comb(nq,k)*(3**k) for k in range(0,nb+1)])
     else:
         return math.comb(nq,nb)*(3**nb)
 
@@ -93,7 +102,7 @@ def pbw(nq,nb=-1,ptype=None,max=False,k=None,edges=None):
     If max is True, all Pauli strings of weight 0 to nb are generated.
     If edges is specified, only Pauli strings that act on the specified interacting qubits are generated.
         edges = [... (i,j) ...] where i,j are qubit indices
-    If k is specified, k Pauli strings are randomly selected.
+    If k is specified, k Pauli strings are randomly selected out of remaining
     """
 
     def _helper(nq,nb):
@@ -222,77 +231,82 @@ def get_h_ops(nq,model,graph=None,seed=None,eps=0,k=None):
     H_ops = perturb(H_ops, eps=eps, seed=seed)
     return H_ops
 
+def is_valid_init_state(nq: int, spec: str) -> bool:
+    """
+    Check whether `spec` is a valid string argument to get_init_state: either one of
+    the recognized named states (NAMED_INIT_STATES), or a compact per-qubit product
+    string of length nq built only from INIT_STATE_CHAR_LOOKUP's keys. Raises
+    ValueError if not.
+    """
+    if isinstance(spec, str):
+        if spec.strip().lower() in NAMED_INIT_STATES:
+            return True
+        compact = "".join(ch for ch in spec if not ch.isspace())
+        if len(compact) == nq and set(compact) <= set(INIT_STATE_CHAR_LOOKUP):
+            return True
+    raise ValueError(
+        f"Invalid spec {spec!r} for nq={nq}. Must be one of the named states "
+        f"{sorted(NAMED_INIT_STATES)}, or a length-{nq} product-state string "
+        f"using only {''.join(INIT_STATE_CHAR_LOOKUP)}."
+    )
+
 def get_init_state(
     nq: int,
-    spec: Union[str, qt.Qobj],
+    spec: str,
     *,
     seed: int = 42,
+    graph: nx.Graph = None,
 ) -> qt.Qobj:
-    
-    char_lookup = {
-        '0': k0,
-        '1': k1,
-        '+': kp,
-        '-': km,
-        '>': kpi,
-        '<': kmi,
-    }
 
-    # --- Dispatch on type of `spec` ---
-    if isinstance(spec, str):
-        name = spec.strip().lower()
-        if name == 'ghz':
-            return qt.ghz_state(nq)
-        elif name == 'w':
-            dim = 2**nq
-            state = np.zeros(dim, dtype=complex)
-            for k in range(nq):
-                index = 1 << (nq - k - 1)  # position of '1' in binary string
-                state[index] = 1
-            return qt.Qobj(state / np.sqrt(nq), dims=[[2]*nq, [1]*nq])
-        elif name == 'r':
-            state = qt.rand_ket(2**nq, seed=seed, distribution='fill')
-            state.dims = [[2]*nq, [1]*nq]
-            return state
-        elif name == 'hr':
-            state = qt.rand_ket(2**nq, seed=seed, distribution='haar')
-            state.dims = [[2]*nq, [1]*nq]
-            return state
-        elif name == 'rp':
-            kets = [qt.rand_ket(2, seed=seed + i, distribution='fill') for i in range(nq)]
-            return qt.tensor(kets)
-        elif name == 'hrp':
-            kets = [qt.rand_ket(2, seed=seed + i, distribution='haar') for i in range(nq)]
-            return qt.tensor(kets)
-        else:
-            # Treat as compact per-qubit string (ignore whitespace)
-            compact = "".join(ch for ch in spec if not ch.isspace())
-            if len(compact) != nq:
-                raise ValueError(f"Product-state string length {len(compact)} != nq={nq}.")
-            try:
-                kets = [char_lookup[ch] for ch in compact]
-            except KeyError as e:
-                allowed = "".join(char_lookup.keys())
-                raise ValueError(
-                    f"Invalid character {e.args[0]!r} in product-state string. "
-                    f"Allowed: {allowed}."
-                )
-            return qt.tensor(kets)
-
-    # if isinstance(spec, qt.Qobj):
-    #     H = spec
-    #     evals, evecs = H.eigenstates()
-    #     if eigvals < 1 or eigvals > len(evecs):
-    #         raise ValueError(f"eigvals must be in [1, {len(evecs)}], got {eigvals}.")
-    #     state = evecs[0] if eigvals == 1 else sum(evecs[:eigvals])
-    #     state = state.unit()
-    #     state.dims = [[2]*nq, [1]*nq]
-    #     return state
-
-    raise TypeError(
-        "Unsupported `spec` type. Use: str (named state or compact product string) "
-        "or qutip.Qobj (Hamiltonian)."
-    )
+    is_valid_init_state(nq, spec)  # raises ValueError if invalid
+    name = spec.strip().lower()
+    if name == 'ghz':
+        return qt.ghz_state(nq)
+    elif name == 'neel':
+        # Alternates +/- by sublattice (bipartite 2-coloring of `graph`), not by
+        # raw qubit index, since index-alternation only matches the checkerboard
+        # pattern when every graph "row" has odd length (see get_init_state docs).
+        if graph is None:
+            raise ValueError("Must provide `graph` for 'neel' state.")
+        assert nq == graph.number_of_nodes(), "# of graph nodes must match nq"
+        color = nx.bipartite.color(graph)  # raises if graph is not bipartite
+        kets = [kp if color[i] == 0 else km for i in range(nq)]
+        return qt.tensor(kets)
+    elif name == 'w':
+        dim = 2**nq
+        state = np.zeros(dim, dtype=complex)
+        for k in range(nq):
+            index = 1 << (nq - k - 1)  # position of '1' in binary string
+            state[index] = 1
+        return qt.Qobj(state / np.sqrt(nq), dims=[[2]*nq, [1]*nq])
+    elif name == 'r':
+        state = qt.rand_ket(2**nq, seed=seed, distribution='fill')
+        state.dims = [[2]*nq, [1]*nq]
+        return state
+    elif name == 'hr':
+        state = qt.rand_ket(2**nq, seed=seed, distribution='haar')
+        state.dims = [[2]*nq, [1]*nq]
+        return state
+    elif name == 'rp':
+        kets = [qt.rand_ket(2, seed=seed + i, distribution='fill') for i in range(nq)]
+        return qt.tensor(kets)
+    elif name == 'hrp':
+        kets = [qt.rand_ket(2, seed=seed + i, distribution='haar') for i in range(nq)]
+        return qt.tensor(kets)
+    else:
+        # Treat as compact per-qubit string (ignore whitespace). Character i is
+        # placed on qubit/graph-node i directly (same integer labeling `edges`
+        # uses in get_h_ops) -- NOT rastered over the graph in 2D reading order.
+        # e.g. for a 2x3 grid built as nx.grid_2d_graph(2,3) + convert_node_labels_
+        # to_integers, node id = row*3 + col, so '+-01><' lands as:
+        #   row 0: + - 0
+        #   row 1: 1 > <
+        # For lattice-aware alternating patterns (e.g. Neel order), use 'neel'
+        # instead of hand-typing a string, since naive alternation only matches
+        # the checkerboard pattern when every row has odd length.
+        compact = "".join(ch for ch in spec if not ch.isspace())
+        kets = [INIT_STATE_CHAR_LOOKUP[ch] for ch in compact]
+        return qt.tensor(kets)
 
 def expand_into(V=None,Vinv=None,observable=None,state=None,U=None):
     """

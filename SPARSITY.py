@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from tqdm import tqdm
-import random, os, argparse, pprint, json
+import random, os, argparse, pprint, json, sys
 import multiprocessing as mp
 from pathlib import Path
 from threadpoolctl import threadpool_limits
@@ -90,11 +90,13 @@ def _worker(args):
     U = COB(_NQ)
     ostrings = pbw(_NQ, nb=_NB, max=True)
     NUM_PAULIS = len(ostrings)
-    init_state = get_init_state(_NQ, _ISTATE)
+    G = nx.generators.lattice.grid_2d_graph(_NX,_NY)
+    G = nx.convert_node_labels_to_integers(G)
+    init_state = get_init_state(_NQ, _ISTATE, graph=G)
 
     L = get_L(_NQ, _NX, _NY, _HAM, eps=eps, gamma=_GAMMA, seed=seed)
     Lp = U.dag() * L * U
-    _, V = np.linalg.eig(Lp.full())
+    Es, V = np.linalg.eig(Lp.full())
     cn = np.linalg.cond(V)
     if cn > 1e6:
         print(f"Warning: Condition number of V is large ({cn:.2e}) for trial {ii}, eps {eps:.2f}. Results may be inaccurate.")
@@ -142,7 +144,7 @@ if __name__ == "__main__":
     TRIALS = args.trials
     NUM_WORKERS = args.nw
 
-    _ = get_init_state(NQ, ISTATE)  # validate istate/nq before creating anything
+    is_valid_init_state(NQ, ISTATE)
 
     if EPS:
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"
@@ -157,6 +159,26 @@ if __name__ == "__main__":
 
     epss = np.linspace(EPSMIN, EPSMAX, EPSNUM)  # should contain EPS
     assert np.any(np.isclose(epss, EPS)), f"EPS={EPS} not in epss={epss}"
+
+    # import cProfile
+
+    # def profile_body():
+    #     NQ, NB, NX, NY, HAM, GAMMA, ISTATE = 5, 4, 1, 5, 'tfim', 1e-2, 'ghz'
+    #     U = COB(NQ)
+    #     ostrings = pbw(NQ, nb=NB, max=True)
+    #     NUM_PAULIS = len(ostrings)
+    #     init_state = get_init_state(NQ, ISTATE)
+
+    #     L = get_L(NQ, NX, NY, HAM, eps=0.1, gamma=GAMMA, seed=42)
+    #     Lp = U.dag() * L * U
+    #     _, V = np.linalg.eig(Lp.full())
+    #     Vinv = np.linalg.inv(V)
+    #     _ = get_sparsity(expand_into(Vinv=Vinv, state=init_state, U=U), type='gini')
+    #     for kk in range(NUM_PAULIS):
+    #         _ = get_sparsity(expand_into(V=V, observable=p2op(ostrings[kk]), U=U), type='gini')
+
+    # cProfile.run('profile_body()', sort='cumtime')
+    # sys.exit(0)
 
     mp.set_start_method("spawn", force=True)
     NUM_WORKERS = min(cpu_cap(), NUM_WORKERS)

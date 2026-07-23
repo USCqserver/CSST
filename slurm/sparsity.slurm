@@ -19,10 +19,10 @@ source "$SLURM_DIR/config.sh"
 # -------- Parameters --------
 DIR="data"
 NX=2
-NY=4
+NY=2
 NB=4
 HAM="heis"
-ISTATE="+-+-+-+-"
+ISTATE="+-+-"
 TRIALS=10
 EPS=0.1
 EPSMIN=0.0
