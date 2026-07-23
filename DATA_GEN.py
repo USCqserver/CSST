@@ -169,6 +169,8 @@ if __name__ == "__main__":
     GAMMA = args.gamma         # common decay rate for all collapse operators
     NUM_WORKERS = args.nw      # number of workers
 
+    _ = get_init_state(NQ, ISTATE)  # validate istate/nq before creating anything
+
     if EPS:
         print(f"{YELLOW}Perturbing Hamiltonian coefficients with max percentage {EPS}...{RESET}")
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"

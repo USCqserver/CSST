@@ -19,9 +19,9 @@ source "$SLURM_DIR/config.sh"
 # -------- Parameters --------
 DIR="data"
 NX=2
-NY=4
+NY=2
 HAM="heis"
-ISTATE="+-+-+-+-"
+ISTATE="+-+-"
 N=1000
 NB=4
 NSMIN=50

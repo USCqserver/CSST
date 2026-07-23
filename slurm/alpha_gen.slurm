@@ -17,6 +17,7 @@ SLURM_DIR="$HOME/CSST/slurm"   # USER: change if your repo lives elsewhere
 source "$SLURM_DIR/config.sh"
 
 # -------- Parameters ---------
+DIR="data"
 NX=2
 NY=4
 HAM="tfim"
@@ -53,6 +54,7 @@ conda activate "$CONDA_ENV"
 
 # -------- Run script from repo; I/O happens in $WORKDIR --------
 python "$REPO_PATH/ALPHA_GEN.py" \
+    --dir	"$DIR"		\
     --nx	"$NX"		\
     --ny	"$NY"		\
     --ham 	"$HAM" 		\

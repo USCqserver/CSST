@@ -142,6 +142,8 @@ if __name__ == "__main__":
     TRIALS = args.trials
     NUM_WORKERS = args.nw
 
+    _ = get_init_state(NQ, ISTATE)  # validate istate/nq before creating anything
+
     if EPS:
         LABEL = f"{NX}x{NY}_{HAM}_{ISTATE}_eps={EPS:.1e}"
     else:
