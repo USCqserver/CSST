@@ -4,8 +4,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=128G
-#SBATCH --time=4:00:00
+#SBATCH --mem=32G
+#SBATCH --time=1:00:00
 #SBATCH --job-name=data_gen
 #
 # --account and --mail-user come from SBATCH_ACCOUNT / SBATCH_MAIL_USER

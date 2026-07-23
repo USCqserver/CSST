@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=64G
-#SBATCH --time=24:00:00
+#SBATCH --time=5:00:00
 #SBATCH --job-name=alpha_gen
 #
 # --account and --mail-user come from SBATCH_ACCOUNT / SBATCH_MAIL_USER
