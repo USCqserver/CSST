@@ -139,10 +139,10 @@ if __name__ == "__main__":
 
     DIR = Path(args.dir) / LABEL
     if not DIR.exists():
-        raise FileNotFoundError(f"Directory {DIR} does not exist.  Make sure to run DATA_GEN.py first to generate the data files.")
+        raise FileNotFoundError(f"Directory {DIR} does not exist.  Make sure to run data_gen.py first to generate the data files.")
 
     info_path = DIR / "info.json"
-    assert info_path.exists(), f"Info file {info_path} does not exist - create it first with DATA_GEN.py"
+    assert info_path.exists(), f"Info file {info_path} does not exist - create it first with data_gen.py"
     with open(DIR / "info.json", 'r') as handle:
         info = json.load(handle)
 
@@ -185,17 +185,17 @@ if __name__ == "__main__":
     ###########################################
 
     exact_path = DIR / "exacts.npy"
-    assert exact_path.exists(), f"Exacts file {exact_path} does not exist - create it first with DATA_GEN.py"
+    assert exact_path.exists(), f"Exacts file {exact_path} does not exist - create it first with data_gen.py"
     exacts = np.load(exact_path, mmap_mode='r')
     print(f"{'Size of exacts:':<20} {exacts.nbytes / (1024**2):8.2f} MB")    
 
     err_path = DIR / "errs.npy"
-    assert err_path.exists(), f"Errors file {err_path} does not exist - create it first with DATA_GEN.py"
+    assert err_path.exists(), f"Errors file {err_path} does not exist - create it first with data_gen.py"
     errs = np.load(err_path, mmap_mode='r')
     print(f"{'Size of errs:':<20} {errs.nbytes / (1024**2):8.2f} MB")
 
     est_path = DIR / "ests.npy"
-    assert est_path.exists(), f"Estimates file {est_path} does not exist - create it first with DATA_GEN.py"
+    assert est_path.exists(), f"Estimates file {est_path} does not exist - create it first with data_gen.py"
     ests = np.load(est_path, mmap_mode='r')
     print(f"{'Size of ests:':<20} {ests.nbytes / (1024**2):8.2f} MB")
 

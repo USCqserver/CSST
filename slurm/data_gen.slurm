@@ -55,7 +55,7 @@ if [ "$TOTAL_THREADS" -gt "$SLURM_CPUS_PER_TASK" ]; then
 fi
 
 # -------- Run script from repo; I/O happens in $WORKDIR --------
-python "$REPO_PATH/DATA_GEN.py" \
+python "$REPO_PATH/data_gen.py" \
     --dir	"$DIR"		\
     --nx 	"$NX"		\
     --ny 	"$NY"		\

@@ -56,7 +56,7 @@ if [ "$TOTAL_THREADS" -gt "$SLURM_CPUS_PER_TASK" ]; then
 fi
 
 # -------- Run script from repo; I/O happens in $WORKDIR --------
-python "$REPO_PATH/SPARSITY.py" \
+python "$REPO_PATH/sparsity.py" \
     --dir 	"$DIR"		\
     --nx 	"$NX"		\
     --ny 	"$NY"		\
